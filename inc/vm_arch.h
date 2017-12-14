@@ -64,46 +64,63 @@
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
+   fixnum
+
+      +----+------+----+--------------------------------+
+      | 00 | 1000 | GC |             VALUE              |
+      +----+------+----+--------------------------------+
+         2     4     2                 32
+
    bignum
 
       A Bignum is composed of a list of 16 bits signed numerical parts, least 
       significant portion is first.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1000 | GC |    NUM PAR    |      NEXT      |
+      | 00 | 1001 | GC |    NUM PAR    |      NEXT      |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
    string
 
-      A string is a list of 2 chars cells. If it is composed of
+      A string is a list of 2 chars cells and is located in RAM in the heap. If it is composed of
       an odd numner of chars, the last one is null. A zero length string
       will have the two chars = 0
 
       +----+------+----+---------------+----------------+
-      | 00 | 1001 | GC |   2  CHARS    |      NEXT      |
+      | 00 | 1010 | GC |   2  CHARS    |      NEXT      |
+      +----+------+----+---------------+----------------+
+         2     4     2        16               16
+
+  cstring
+
+      A constant string is a null terminated string located in the ROM space, in the
+      cstring pool.
+
+      +----+------+----+---------------+----------------+
+      | 00 | 1011 | GC |  CHARS LST    |       0        |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
    vector
 
-      Lenght is in bytes (max 64k). To content point on
-      the 4-byte word index in the vector space.
+      Lenght is in bytes (max 64k). To content the index
+      (4 bytes aligned) in the vector space.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1010 | GC |    LENGTH     |   TO CONTENT   |
+      | 00 | 1100 | GC |    LENGTH     |   TO CONTENT   |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
    symbol
 
-      The Symbol table is in the rom area. The char list is a pointer (byte index in
-      the symbol string pool) to a null terminated string containing the human 
+      The Symbol table is in the rom area. The char list is an index (byte index in
+      the constant string pool) to a null terminated string containing the human 
       representation of the symbol. Next point to the next synbol cell in the 
       symbol table. The chars list pointer in unique for each symbol.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1011 | GC |   CHARS LST   |       NEXT     |
+      | 00 | 1101 | GC |   CHARS LST   |       NEXT     |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
@@ -113,10 +130,12 @@
 #define         CONS_TYPE   0
 #define CONTINUATION_TYPE   1
 #define      CLOSURE_TYPE   2
-#define       BIGNUM_TYPE   8
-#define       STRING_TYPE   9
-#define       VECTOR_TYPE  10
-#define       SYMBOL_TYPE  11
+#define       FIXNUM_TYPE   8
+#define       BIGNUM_TYPE   9
+#define       STRING_TYPE  10
+#define      CSTRING_TYPE  11
+#define       VECTOR_TYPE  12
+#define       SYMBOL_TYPE  13
 
 #define         ATOM_MASK   8
 
@@ -146,6 +165,11 @@ typedef struct {
 
 typedef struct {
   cell_p next_p;
+  int32_t value;
+} fixnum_part;
+
+typedef struct {
+  cell_p next_p;
   short num_part;
 } bignum_part;
 
@@ -155,13 +179,18 @@ typedef struct {
 } string_part;
 
 typedef struct {
+  cell_p next_p;
+  IDX chars_idx ;
+} cstring_part;
+
+typedef struct {
   vector_p start_p;
   unsigned short length; // in bytes
 } vector_part;
 
 typedef struct {
   cell_p next_p;
-  unsigned short chars_idx;
+  IDX chars_idx;
 } symbol_part;
 
 typedef struct {
@@ -169,8 +198,10 @@ typedef struct {
             cons_part cons;
     continuation_part continuation;
          closure_part closure;
+          fixnum_part fixnum;
           bignum_part bignum;
           string_part string;
+         cstring_part cstring;
           vector_part vector;
           symbol_part symbol;
   };
