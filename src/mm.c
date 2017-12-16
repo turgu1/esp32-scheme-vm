@@ -1,5 +1,5 @@
-#include "esp32_scheme_vm.h"
-#include "vm_arch.h"
+#include "esp32-scheme-vm.h"
+#include "vm-arch.h"
 
 #define MM
 #include "mm.h"
@@ -161,7 +161,7 @@ bool mm_init()
   #endif
 
   sweep();
-
+  
   if (!check_free_list(ram_heap_size)) return false;
 
   return true;
@@ -169,7 +169,13 @@ bool mm_init()
 
 void mm_gc()
 {
-  mark(root);
+  mark(reg1);
+  mark(reg2);
+  mark(reg3);
+  mark(reg4);
+  mark(cont);
+  mark(env);
+
   sweep();
 
   #if DEBUGGING

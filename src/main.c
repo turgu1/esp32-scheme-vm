@@ -10,15 +10,15 @@
    December 2017
 */
 
-#include "esp32_scheme_vm.h"
-#include "vm_arch.h"
+#include "esp32-scheme-vm.h"
+#include "vm-arch.h"
 #include "mm.h"
 
 bool initialisations()
 {
   if (!mm_init()) return false;
   init_vm_arch();
-  
+
   return true;
 }
 

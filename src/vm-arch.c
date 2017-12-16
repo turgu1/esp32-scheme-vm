@@ -1,7 +1,7 @@
-#include "esp32_scheme_vm.h"
+#include "esp32-scheme-vm.h"
 
 #define VM_ARCH
-#include "vm_arch.h"
+#include "vm-arch.h"
 
 void init_vm_arch()
 {

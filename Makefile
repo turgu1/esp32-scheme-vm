@@ -15,7 +15,7 @@ OBJEXT      := o
 
 #Flags, Libraries and Includes
 CFLAGS      := -Wall -O3 -g -std=gnu99
-LIB         := 
+LIB         :=
 INC         := -I$(INCDIR)
 INCDEP      := -I$(INCDIR)
 
@@ -30,6 +30,9 @@ all: resources $(TARGETDIR)/$(TARGET)
 
 #Remake
 remake: cleaner all
+
+run:
+	$(TARGETDIR)/$(TARGET)
 
 #Copy Resources from Resources Directory to Target Directory
 resources: directories
@@ -65,4 +68,4 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
 #Non-File Targets
-.PHONY: all remake clean cleaner resources
+.PHONY: all run remake clean cleaner resources
