@@ -11,8 +11,8 @@
 
   The Virtual Machine definition is composed of the following elements:
 
-    
     Cells definitions
+    Standard constants
     VM Registers
     Machine instructions
 
@@ -27,7 +27,7 @@
 
   On the ESP32, alignement doesn't seems to have any issue on the performance
   of the code. At least sequential RAM access runs at the same speed even when 16 bits words
-  are accessed. 
+  are accessed, aligned or not.
 
   ToDo: Random access remains to be checked
 
@@ -51,7 +51,7 @@
          2     4     2        16               16
 
    continuation
-    
+
       +----+------+----+---------------+----------------+
       | 00 | 0001 | GC |    PARENT     |   CLOSURE IDX  |
       +----+------+----+---------------+----------------+
@@ -73,7 +73,7 @@
 
    bignum
 
-      A Bignum is composed of a list of 16 bits signed numerical parts, least 
+      A Bignum is composed of a list of 16 bits signed numerical parts, least
       significant portion is first.
 
       +----+------+----+---------------+----------------+
@@ -94,8 +94,8 @@
 
   cstring
 
-      A constant string is a null terminated string located in the ROM space, in the
-      cstring pool.
+      A string constant is a null terminated string located in the ROM space,
+      in the cstring pool.
 
       +----+------+----+---------------+----------------+
       | 00 | 1011 | GC |  CHARS LST    |       0        |
@@ -115,8 +115,8 @@
    symbol
 
       The Symbol table is in the rom area. The char list is an index (byte index in
-      the constant string pool) to a null terminated string containing the human 
-      representation of the symbol. Next point to the next synbol cell in the 
+      the constant string pool) to a null terminated string containing the human
+      representation of the symbol. Next point to the next synbol cell in the
       symbol table. The chars list pointer in unique for each symbol.
 
       +----+------+----+---------------+----------------+
@@ -139,7 +139,7 @@
 
 #define         ATOM_MASK   8
 
-// Easy enoough: all pointer elements in cells are 16 bit long. So we define here
+// Easy enough: all pointer elements in cells are 16 bit long. So we define here
 // the various pointer types as uint16...
 
 typedef uint16_t IDX;
@@ -213,26 +213,38 @@ typedef struct {
 
 typedef cell * cell_ptr;
 
+/** Standard Constants.
+
+  To mitigate the amount of generated cells, standard constants are defined
+  in the address space. Addresses 0xFE00 to 0xFFFF are reserved for
+  predefined constants as follow:
+
+  0xFE00 .. 0xFF00 : -1 to 255
+  0xFFF0           : #t
+  0xFFF1           : #f
+  0xFFFF           : NIL
+*/
+
+#define TRUE  ((cell_p) 0xFFF0)
+#define FALSE ((cell_p) 0xFFF1)
+#define NIL   ((cell_p) 0xFFFF)
+#define DECODE_CONSTANT(p) (((uint32)(p & 0xFE00)) - 1)
+
+// n is expected to be -1 <= n <= 255
+#define ENCODE_CONSTANT(n) ((n + 1) | 0xFE00)
+
 /** VM Registers.
 
- free_cells     pointer on free cells
- environments   pointer on environments. The first one is from de code (Read only)
- continuations  pointer on continuations
-
- rom_heap       pointer on the rom_heap
- rom_heap_size  length of the rom_heap in cell count
-
- ram_heap       pointer on the ram_heap
- ram_heap_size  length of the ram_heap in cell count
+ env          pointer on environments. The first one is from de code (Read only)
+ cont         pointer on continuations
+ reg1 .. reg4 registers for function parameters and evaluation
 
  */
 
-#define NIL  ((cell_p) 0xFFFF)
-
-PUBLIC cell_p root;
+PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4;
+PUBLIC uint8_t * pc;
 
 PUBLIC void init_vm_arch();
 
 #undef PUBLIC
 #endif
-
