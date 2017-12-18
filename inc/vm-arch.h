@@ -12,6 +12,7 @@
   The Virtual Machine definition is composed of the following elements:
 
     Cells definitions
+    Globals
     Standard constants
     VM Registers
     Machine instructions
@@ -213,6 +214,13 @@ typedef struct {
 
 typedef cell * cell_ptr;
 
+/** Globals.
+
+  Global variables are located at the beginning of the RAM Heap. As this
+  heap is allocated on cell boundaries, we are putting 2 globals per cell.
+
+ */
+
 /** Standard Constants.
 
   To mitigate the amount of generated cells, standard constants are defined
@@ -220,9 +228,28 @@ typedef cell * cell_ptr;
   predefined constants as follow:
 
   0xFE00 .. 0xFF00 : -1 to 255
-  0xFFF0           : #t
-  0xFFF1           : #f
+  0xFFFD           : #f
+  0xFFFE           : #t
   0xFFFF           : NIL
+
+  For the LDCS instruction, values are coded on 5 bits as follow:
+
+  +---------+----------+
+  |   ccccc |  result  |
+  +---------+----------+
+  | 0 .. 28 | -1 .. 27 |
+  |      29 | #f       |
+  |      30 | #t       |
+  |      31 | NIL      |
+  +---------+----------+
+
+  For the LDC instruction , values are coded on 9 bits as follow:
+
+  +-----------+------------+
+  | ccccccccc | result     |
+  +===========+============+
+  |  0 .. 256 | -1 .. 255  |
+  +-----------+------------+
 */
 
 #define TRUE  ((cell_p) 0xFFF0)
@@ -238,11 +265,111 @@ typedef cell * cell_ptr;
  env          pointer on environments. The first one is from de code (Read only)
  cont         pointer on continuations
  reg1 .. reg4 registers for function parameters and evaluation
+ pc           program counter
 
  */
 
 PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4;
 PUBLIC uint8_t * pc;
+
+/** Instructions.
+
+  LDCS    Load immediate small constant to TOS
+          000ccccc
+
+  LDSTK   Load stack to TOS
+          001nnnnn
+
+  LDS     Load global value to TOS, located at the beginning of the RAM Heap
+          Space. Only the first 16 entries are accessible through this instruction.          iiii is an index in the heap space.
+          0100iiii
+
+  STS     Store TOS to global variable. Only the first 16 entries are accessible
+          through this instruction. iiii is an index in the heap space.
+          0101iiii
+
+  CALLC   Call function with closure on TOS, n is the number of arguments
+          0110nnnn
+
+  JUMPC   Jump to function with closure on TOS, n is the number of arguments
+          0111nnnn
+
+  JUMPS   Jump to function at adress pc + x
+          1000xxxx
+
+  BRSF    Branch to location pc + x if TOS is false
+          1001xxxx
+
+  LDC     Load immediate pre-defined constant to TOS
+          1010cccc cccccccc
+
+  CALL    Call function at entry point a.
+          10110000 aaaaaaaa aaaaaaaa
+
+  JUMP    Jump to function at entry point a.
+          10110001 aaaaaaaa aaaaaaaa
+
+  BR      Unconditional Branch to location
+          10110010 aaaaaaaa aaaaaaaa
+
+  BRF     Branch to location if TOS is false
+          10110011 aaaaaaaa aaaaaaaa
+
+  CLOS    Build closure from entry point a.
+          10110100 aaaaaaaa aaaaaaaa
+
+  CALLR   Call function at location pc + a - 128
+          10110101 aaaaaaaa
+
+  JUMPR   Jump to function at location pc + a - 128
+          10110110 aaaaaaaa
+
+  BRR     Unconditional Branch to location pc + a - 128
+          10110111 aaaaaaaa
+
+  BRRF    Branch to location  pc + a - 128 if TOS is false
+          10111000 aaaaaaaa
+
+  CLOSR   Build closure from entry point pc + a - 128
+          10111001 aaaaaaaa
+
+  LD      Load global value to TOS, located at the beginning of the RAM Heap
+          Space. iiiiiiii is an index in the heap space.
+          10111110 iiiiiiii
+
+  ST      Store TOS to global variable, located at the beginning of the RAM Heap
+          Space. iiiiiiii is an index in the heap space.
+          10111111 iiiiiiii
+  */
+
+#define LDCS1       ((uint8_t) 0x00)
+#define LDCS2       ((uint8_t) 0x10)
+#define LDSTK1      ((uint8_t) 0x20)
+#define LDSTK2      ((uint8_t) 0x30)
+#define LDS         ((uint8_t) 0x40)
+#define STS         ((uint8_t) 0x50)
+#define CALLC       ((uint8_t) 0x60)
+#define JUMPC       ((uint8_t) 0x70)
+#define JUMPS       ((uint8_t) 0x80)
+#define BRSF        ((uint8_t) 0x90)
+#define LDC         ((uint8_t) 0xA0)
+#define CALL        ((uint8_t) 0xB0)
+#define JUMP        ((uint8_t) 0xB1)
+#define BR          ((uint8_t) 0xB2)
+#define BRF         ((uint8_t) 0xB3)
+#define CLOS        ((uint8_t) 0xB4)
+#define CALLR       ((uint8_t) 0xB5)
+#define JUMPR       ((uint8_t) 0xB6)
+#define BRR         ((uint8_t) 0xB7)
+#define BRRF        ((uint8_t) 0xB8)
+#define CLOSR       ((uint8_t) 0xB9)
+#define LD          ((uint8_t) 0xBE)
+#define ST          ((uint8_t) 0xBF)
+
+#define BUILTIN1    ((uint8_t) 0xC0)
+#define BUILTIN2    ((uint8_t) 0xD0)
+#define BUILTIN3    ((uint8_t) 0xE0)
+#define BUILTIN4    ((uint8_t) 0xF0)
 
 PUBLIC void init_vm_arch();
 

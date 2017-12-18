@@ -47,10 +47,6 @@ PRIVATE void mark(cell_p p)
   cell_p prev    = NIL;
   cell_p next;
 
-  #if STATISTICS
-    used_cells_count = 0;
-  #endif
-
   while (true) {
     while ((current < ram_heap_end) && (ram_heap[current].gc_mark == 0)) {
       ram_heap[current].gc_mark = 1;
@@ -101,10 +97,10 @@ PRIVATE void sweep()
     free_cells_count = 0;
   #endif
 
-  cell_p p;
+  cell_p   p;
   cell_ptr pp;
 
-  for (p = 0, pp = ram_heap; p < ram_heap_end; p++, pp++) {
+  for (p = reserved_cells_count, pp = ram_heap; p < ram_heap_end; p++, pp++) {
     if (pp->gc_mark == 1) {
       pp->gc_mark = 0;
     }
@@ -129,11 +125,13 @@ PRIVATE bool check_free_list(int count)
     next = ram_heap[next].cons.cdr_p;
   }
 
-  return count == 0;
+  return count == reserved_cells_count;
 }
 
-bool mm_init()
+bool mm_init(uint8_t globals)
 {
+  globals_count = globals;
+  reserved_cells_count = (globals_count + 1) >> 1;
 
   #ifdef COMPUTER
 
@@ -160,8 +158,14 @@ bool mm_init()
     free_cells_count = 0;
   #endif
 
+  for (i = 0; i < reserved_cells_count; i++) {
+    ram_heap[i].type = CONS_TYPE;
+    ram_heap[i].cons.car_p = FALSE;
+    ram_heap[i].cons.cdr_p = FALSE;
+  }
+
   sweep();
-  
+
   if (!check_free_list(ram_heap_size)) return false;
 
   return true;
@@ -169,6 +173,11 @@ bool mm_init()
 
 void mm_gc()
 {
+  #if STATISTICS
+    used_cells_count = 0;
+  #endif
+
+  for (unit8_t i = 0; i < reserved_cells_count; i++) mark(i);
   mark(reg1);
   mark(reg2);
   mark(reg3);
@@ -179,8 +188,33 @@ void mm_gc()
   sweep();
 
   #if DEBUGGING
-    if ((used_cells_count + free_cells_count) != ram_heap_size) {
-      printf("WARNING - HEAP FRAGMENTATION\n");
+    if ((used_cells_count + free_cells_count + reserved_cells_count) != ram_heap_size) {
+      WARNING("HEAP FRAGMENTATION\n");
     }
   #endif
+}
+
+cell_p cons(cell_p car, cell_p cdr)
+{
+  if (free_cells == NIL) {
+    mm_gc();
+    if (free_cells == NIL) {
+      FATAL("MEMORY EXHAUSTED!!\n");
+      #ifdef COMPUTER
+        exit(1);
+      #endif
+      #ifdef ESP32
+        // Todo: Reset the processor...
+      #endif
+    }
+  }
+
+  cell_p p = free_cells;
+  free_cells = ram_heap[free_cells].cons.cdr_p;
+
+  ram_heap[p].type = CONS_TYPE;
+  ram_heap[p].cons.car_p = car;
+  ram_heap[p].cons.cdr_p = cdr;
+
+  return p;
 }

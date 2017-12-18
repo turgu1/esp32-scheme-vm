@@ -5,5 +5,4 @@
 
 void init_vm_arch()
 {
-  root = NIL;
 }
