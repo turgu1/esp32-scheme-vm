@@ -11,15 +11,10 @@
 
 cell_p pop()
 {
+  // all the cons linking stack elements together are from the RAM Heap.
   #if DEBUGGING
     if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
       FATAL("HEAP BROKEN!!!");
-      #if COMPUTER
-        exit(1);
-      #endif
-      #if ESP32
-        // Todo: Code for ESP32
-      #endif
     }
   #endif
 
@@ -30,14 +25,45 @@ cell_p pop()
 
     return NIL;
   }
-  cell_p p = ram_heap[env].cons.car_p;
-  env = ram_heap[env].cons.cdr_p;
+  cell_p p = RAM_GET_CAR_NO_TEST(env);
+  env = RAM_GET_CDR_NO_TEST(env);
 
   return p;
 }
 
-void interpreter(uint8_t * program)
+cell_p pop_closure(code_p *entry)
 {
+  cell_p tmp = pop();
+  if (IN_RAM(tmp)) {
+    if (IS_CLOSURE(tmp)) {
+      *entry = RAM_GET_CLOSURE_ENTRY_POINT(tmp);
+    }
+    else {
+      FATAL("Expected closure cell at %d.\n", tmp);
+    }
+  }
+  else {
+    FATAL("Closure on TOS not in RAM: %d.\n", tmp);
+  }
+  return tmp;
+}
+
+unit8_t prepare_arguments(int8_t nbr_args, code_p *entry)
+{
+  uint8_t nbr_params = *(program + *entry++);
+
+  if (reg1 != NIL) {
+    // reg1 is the closure definitions
+    reg1 = RAM_GET_CLOSURE_ENV(reg1); // retrieve the environment
+  }
+
+  if ()
+}
+
+void interpreter()
+{
+  code_p entry;
+
   reg1 =
   reg2 =
   reg3 =
@@ -89,12 +115,25 @@ void interpreter(uint8_t * program)
         GLOBAL_SET(p, pop());
         break;
 
-      case CALLC :
-        TRACE("  CALLC\n");
+      case CALLC :  // Call with closure on TOS
+        uint8_t n = instr & 0x0F;
+        TRACE("  CALLC %d\n", n);
+        reg1 = pop_closure(&entry);
+        build_environment(prepare_arguments(n, &entry));
+        save_cont();
+
+        pc = program + entry;
+        reg1 = NIL;
         break;
 
       case JUMPC :
-        TRACE("  JUMPC\n");
+        uint8_t n = instr & 0x0F;
+        TRACE("  JUMPC %d\n", n);
+        reg1 = pop_closure(&entry);
+        build_environment(prepare_arguments(n, &entry));
+
+        pc = program + entry;
+        reg1 = NIL;
         break;
 
       case JUMPS :

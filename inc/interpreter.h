@@ -16,4 +16,4 @@
   a read-only portion of the memory map and is byte addresable.
 
  */
-PUBLIC void interpreter(uint8_t * program);
+PUBLIC void interpreter();

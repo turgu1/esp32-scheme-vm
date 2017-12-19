@@ -61,7 +61,7 @@
    closure
 
       +----+------+----+---------------+----------------+
-      | 00 | 0010 | GC |   CODE PTR    |   ENVIRONMENT  |
+      | 00 | 0010 | GC |  ENVIRONMENT  |    CODE PTR    |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
@@ -213,6 +213,16 @@ typedef struct {
 } cell;
 
 typedef cell * cell_ptr;
+
+#define RAM_IS_CONS(p)         (ram_heap[p].type == CONS_TYPE)
+#define RAM_IS_CONTINUATION(p) (ram_heap[p].type == CONTINUATION_TYPE)
+#define RAM_IS_CLOSURE(p)      (ram_heap[p].type == CLOSURE_TYPE)
+#define RAM_IS_FIXNUM(p)       (ram_heap[p].type == FIXNUM_TYPE)
+#define RAM_IS_BIGNUM(p)       (ram_heap[p].type == BIGNUM_TYPE)
+#define RAM_IS_STRING(p)       (ram_heap[p].type == STRING_TYPE)
+#define RAM_IS_CSTRING(p)      (ram_heap[p].type == CSTRING_TYPE)
+#define RAM_IS_VECTOR(p)       (ram_heap[p].type == VECTOR_TYPE)
+#define RAM_IS_SYMBOL(p)       (ram_heap[p].type == SYMBOL_TYPE)
 
 /** Globals.
 

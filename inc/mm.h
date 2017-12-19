@@ -67,6 +67,9 @@ PUBLIC uint8_t reserved_cells_count;
 
 PUBLIC cell_p ram_heap_end;
 
+#define IN_RAM(p) (p >= reserved_cells_count) && (p < ram_heap_size)
+#define IN_ROM(p) (p >= rom_heap_start) && (p < rom_heap_end)
+
 #define RAM_GET_CAR(p) ((p < ram_heap_end) ? ram_heap[p].cons.car_p : NIL)
 #define RAM_GET_CDR(p) ((p < ram_heap_end) ? ram_heap[p].cons.cdr_p : NIL)
 
@@ -75,6 +78,12 @@ PUBLIC cell_p ram_heap_end;
 
 #define RAM_SET_CAR_NO_TEST(p, v) ram_heap[p].cons.car_p = v
 #define RAM_SET_CDR_NO_TEST(p, v) ram_heap[p].cons.cdr_p = v
+
+#define RAM_GET_CAR_NO_TEST(p) ram_heap[p].cons.car_p
+#define RAM_GET_CDR_NO_TEST(p) ram_heap[p].cons.cdr_p
+
+#define RAM_GET_CLOSURE_ENV(p) ram_heap[p].closure.environment_p;
+#define RAM_GET_CLOSURE_ENTRY_POINT(p) ram_heap[p].closure.entry_point_p;
 
 #define GLOBAL_GET(i) ((i & 1) ? RAM_GET_CAR_NO_TEST(i >> 1) : RAM_GET_CDR_NO_TEST(i >> 1))
 #define GLOBAL_SET(i, p) if (i & 1) RAM_SET_CAR_NO_TEST(i >> 1, p); else RAM_SET_CDR_NO_TEST(i >> 1, p)
