@@ -14,5 +14,5 @@ from scratch, using as much as possible from the PicoBit vm implementation.
 
 esp32-scheme-vm is released under the GPLv3.
 
-Guy Turcotte..
+Guy Turcotte  
 December 2017
