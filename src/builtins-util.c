@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "builtins.h"
 
@@ -72,9 +73,10 @@ BUILTIN(list->string, list2string, 1, 32)
 }
 
 
-#if TESTING
+#if TESTS
 void builtins_util_tests()
 {
-
+	TESTM("builtins-util");
+  
 }
 #endif

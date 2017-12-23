@@ -32,7 +32,7 @@ all: resources $(TARGETDIR)/$(TARGET)
 remake: cleaner all
 
 run:
-	$(TARGETDIR)/$(TARGET)
+	$(TARGETDIR)/$(TARGET) -T
 
 #Copy Resources from Resources Directory to Target Directory
 resources: directories

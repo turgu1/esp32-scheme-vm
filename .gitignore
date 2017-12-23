@@ -2,6 +2,7 @@
 *.d
 scheme
 .builtins.p
+compiled/
 
 .DS_Store
 .DS_Store?

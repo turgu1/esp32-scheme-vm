@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "builtins.h"
 
@@ -112,9 +113,10 @@ BUILTIN(u8vector-length, u8vector_length, 1, 37)
 }
 
 
-#if TESTING
+#if TESTS
 void builtins_vector_tests()
 {
+	TESTM("builtins-vector");
 
 }
 #endif

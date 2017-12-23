@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "builtins.h"
 
@@ -180,9 +181,10 @@ BUILTIN(bitwise-xor, bitwise_not, 1, 25)
 }
 
 
-#if TESTING
+#if TESTS
 void builtins_numeric_tests()
 {
+	TESTM("builtins-numeric");
 
 }
 #endif

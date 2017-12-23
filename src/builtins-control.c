@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "interpreter.h"
 #include "builtins.h"
@@ -72,9 +73,10 @@ BUILTIN(return-to-cont, return_to_cont, 2, 5)
 }
 
 
-#if TESTING
+#if TESTS
 void builtins_control_tests()
 {
+  TESTM("builtins-control");
 
 }
 #endif

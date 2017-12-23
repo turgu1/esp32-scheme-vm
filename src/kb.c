@@ -1,5 +1,6 @@
 
 #include "esp32-scheme-vm.h"
+#include "testing.h"
 
 #include <termios.h>
 #include <unistd.h>
@@ -33,10 +34,12 @@ char kb_getch(void)
   return (char)((ch == EOF) ? 0 : ch);
 }
 
-#if TESTING
+#if TESTS
 void kb_tests()
 {
   char ch = 0;
+
+  TESTM("kb");
 
   TEST("Keyboard entry");
 
@@ -50,7 +53,7 @@ void kb_tests()
   putchar('\n');
 
   EXPECT_TRUE(ch == 'X', "kb_getch");
-  
+
   kb_restore();
 }
 #endif

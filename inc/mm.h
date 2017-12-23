@@ -7,6 +7,11 @@
 # define PUBLIC extern
 #endif
 
+#ifdef COMPUTER
+  #define RAM_HEAP_ALLOCATED 40000
+  #define VECTOR_HEAP_ALLOCATED 30000
+#endif
+
 /** Memory management.
 
    The VM Architecture, in relation with the capability offered

@@ -1,6 +1,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #define INTERPRETER 1
 #include "interpreter.h"
@@ -59,11 +60,11 @@ uint8_t prepare_arguments(int8_t nbr_args)
       entry = RAM_GET_CLOSURE_ENTRY_POINT(reg1);
     }
     else {
-      FATAL_MSG("prepare_arguments: Expected closure cell at %d.\n", reg1);
+      FATAL_MSG("prepare_arguments: Expected closure cell at %d.", reg1);
     }
   }
   else {
-    FATAL_MSG("prepare_arguments: Closure on TOS not in RAM: %d.\n", reg1);
+    FATAL_MSG("prepare_arguments: Closure on TOS not in RAM: %d.", reg1);
   }
 
   // Retrieve number of arguments expected in the procedure entry point
@@ -76,7 +77,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
 
   if ((nbr_args & 0x80) == 0) {
     if (nbr_args != nbr_params) {
-      ERROR_MSG("prepare_arguments: Wrong number of arguments (%d vs %d).\n", nbr_args, nbr_params);
+      ERROR_MSG("prepare_arguments: Wrong number of arguments (%d vs %d).", nbr_args, nbr_params);
     }
   }
   else {
@@ -375,9 +376,10 @@ void interpreter()
 }
 
 
-#if TESTING
+#if TESTS
 void interpreter_tests()
 {
+  TESTM("interpreter");
 
 }
 #endif

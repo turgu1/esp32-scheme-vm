@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "builtins.h"
 
@@ -94,9 +95,10 @@ BUILTIN(null?, null_p, 1, 12)
 }
 
 
-#if TESTING
+#if TESTS
 void builtins_list_tests()
 {
-
+	TESTM("builtins-list");
+  
 }
 #endif

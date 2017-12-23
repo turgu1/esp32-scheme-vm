@@ -16,30 +16,7 @@
 #include "hexfile.h"
 #include "kb.h"
 
-bool testing = false;
-
-#if TESTING
-  #include "tests.h"
-
-  void conduct_tests()
-  {
-    tested_count = failed_count = 0;
-
-    kb_tests();
-    mm_tests();
-    vm_arch_tests();
-    builtins_computer_tests();
-    builtins_control_tests();
-    builtins_list_tests();
-    builtins_numeric_tests();
-    builtins_util_tests();
-    builtins_vector_tests();
-    hexfile_tests();
-    interpreter_tests();
-
-    printf("\n\n--------------------\nTests completed: %d\nTests failed: %d\n--------------------\n", tested_count, failed_count);
-  }
-#endif
+#include "testing.h"
 
 bool initialisations(char * program_filename)
 {
@@ -80,11 +57,10 @@ void usage(char * exename)
     int opt = 0;
     trace = false;
     char *fname;
-    while ((opt = getopt(argc, argv, "tT")) != -1) {
+    while ((opt = getopt(argc, argv, "tTv")) != -1) {
       switch (opt) {
-        #if TESTING
+        #if TESTS
           case 'T':
-            testing = true;
             conduct_tests();
             return 0;
             break;
@@ -98,6 +74,10 @@ void usage(char * exename)
             return 1;
             break;
         #endif
+
+        case 'v':
+          printf("%d.%d\n", VERSION_MAJOR, VERSION_MINOR);
+          break;
       }
     }
     if ((optind > 0) && (argc > optind)) {
@@ -121,7 +101,7 @@ void usage(char * exename)
     #endif
   }
 
-  INFO_MSG("main: Cell size: %lu\n", sizeof(cell));
+  INFO_MSG("main: Cell size: %lu.", sizeof(cell));
   INFO("main", "Execution completed");
 
   terminate();

@@ -4,6 +4,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "testing.h"
 
 #include "builtins.h"
 #include "kb.h"
@@ -188,13 +189,6 @@ BUILTIN_UNSPEC(#%putchar, putchar, 2, 41)
 	reg2 = NIL;
 }
 
-#if TESTING
-void builtins_computer_tests()
-{
-
-}
-#endif
-
 #if 0
 BUILTIN(beep, beep, 2, 45)
 {
@@ -353,5 +347,13 @@ BUILTIN(send-packet-from-u8vector, send_packet_from_u8vector, 2, 51)
 #endif
 
 	reg2 = FALSE;
+}
+#endif
+
+#if TESTS
+void builtins_computer_tests()
+{
+  TESTM("builtins-computer");
+
 }
 #endif

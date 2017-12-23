@@ -1,5 +1,6 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
+#include "testing.h"
 
 #define MM
 #include "mm.h"
@@ -47,7 +48,7 @@ PRIVATE void mark(cell_p p)
   cell_p prev    = NIL;
   cell_p next;
 
-  while (true) {
+  for (;;) {
     while ((current < ram_heap_end) && (ram_heap[current].gc_mark == 0)) {
       ram_heap[current].gc_mark = 1;
       #if STATISTICS
@@ -97,10 +98,11 @@ PRIVATE void mm_sweep()
     free_cells_count = 0;
   #endif
 
-  cell_p   p;
-  cell_ptr pp;
+  cell_p   p = ram_heap_end - 1;
+  cell_ptr pp = &ram_heap[p];
 
-  for (p = ram_heap_end - 1, pp = &ram_heap[p]; p >= reserved_cells_count; p--, pp--) {
+  // Don't forget: p cannot be a negative number...
+  do {
     if (pp->gc_mark == 1) {
       pp->gc_mark = 0;
     }
@@ -116,7 +118,16 @@ PRIVATE void mm_sweep()
         free_cells_count++;
       #endif
     }
-  }
+    pp--;
+
+    // Last loop will have p = reserved_cells_count...
+  } while (p-- > reserved_cells_count);
+
+  // Reset mark bits in the globals area
+  do {
+    pp->gc_mark = 0;
+    pp--;
+  } while (p-- > 0); // Last loop will have p = 0
 }
 
 PRIVATE bool check_free_list(int count)
@@ -150,7 +161,7 @@ PRIVATE void mm_gc()
   #if DEBUGGING
     if ((used_cells_count + free_cells_count) != ram_heap_size) {
       WARNING_MSG(
-        "mm_gc: HEAP FRAGMENTATION (heap_size: %d, total: %d\n)\n",
+        "mm_gc: HEAP FRAGMENTATION (heap_size: %d, total: %d)",
         ram_heap_size,
         used_cells_count + free_cells_count);
     }
@@ -271,10 +282,10 @@ bool mm_init(uint8_t globals)
 
   #ifdef COMPUTER
 
-    if ((ram_heap = (cell_ptr) calloc(40000, sizeof(cell)))  == NULL) return false;
+    if ((ram_heap = (cell_ptr) calloc(RAM_HEAP_ALLOCATED, sizeof(cell)))  == NULL) return false;
     ram_heap_size = 40000;
 
-    if ((vector_heap = (cell_ptr) calloc(30000, sizeof(cell))) == NULL) return false;
+    if ((vector_heap = (cell_ptr) calloc(VECTOR_HEAP_ALLOCATED, sizeof(cell))) == NULL) return false;
     vector_heap_size = 30000;
 
   #else // ESP32
@@ -312,12 +323,14 @@ bool mm_init(uint8_t globals)
 }
 
 
-#if TESTING
+#if TESTS
 void mm_tests()
 {
+  TESTM("mm");
+
   TEST("mm Initialisation");
 
-    mm_init(25);
+    mm_init(25); // 13 cells required...
     EXPECT_TRUE(sizeof(cell) == 5, "Size of a single cell not equal to 5");
     EXPECT_TRUE((((char *) &vector_heap[0]) + sizeof(cell)) == ((char *) &vector_heap[1]), "Cell structure alignment problems");
     EXPECT_TRUE(check_free_list(ram_heap_size), "Check Ram Heap Free Size return wrong count");
@@ -325,8 +338,8 @@ void mm_tests()
     EXPECT_TRUE(reserved_cells_count == 13, "Reserved cells count != 13");
     EXPECT_TRUE(ram_heap != NULL, "Ram Heap pointer is NULL");
     EXPECT_TRUE(vector_heap != NULL, "Vector Heap pointer is NULL");
-    EXPECT_TRUE(ram_heap_size == 40000, "Ram Heap Size is wrong");
-    EXPECT_TRUE(vector_heap_size == 30000, "Vector Heap Size is wrong");
+    EXPECT_TRUE(ram_heap_size == RAM_HEAP_ALLOCATED, "Ram Heap Size is wrong");
+    EXPECT_TRUE(vector_heap_size == VECTOR_HEAP_ALLOCATED, "Vector Heap Size is wrong");
     EXPECT_TRUE(vector_free_cells == 0, "Vector Free Cells pointer is wrong");
     EXPECT_TRUE(ram_heap_end == ram_heap_size, "Ram Heap End and Size not equal");
     EXPECT_TRUE(free_cells == 13, "Free Cells pointer must be pointing at index 0");
@@ -350,12 +363,29 @@ void mm_tests()
 
     RAM_SET_CAR(1000, 1005);
     mm_gc();
-    printf("\nfree_cells_count: %d\n", free_cells_count);
+    EXPECT_TRUE(
+      free_cells_count == (ram_heap_size - 13 - 5000),
+      "Free Cells Count expected to be at %d but is %d",
+      (ram_heap_size - 13 - 5000),
+      free_cells_count
+    );
 
-    RAM_SET_CDR(2000, 3000);
+    RAM_SET_CDR(2000, RAM_GET_CDR(2000) - 1000);
     mm_gc();
-    EXPECT_TRUE(free_cells_count == 36974, "Free Cells count expected to be at 36974");
+    EXPECT_TRUE(
+      free_cells_count == (ram_heap_size - 13 - 4000),
+      "Free Cells count expected to be at %d but is %d",
+      (ram_heap_size - 13 - 4000),
+      free_cells_count
+    );
 
+    env = NIL;
+    mm_gc();
+    EXPECT_TRUE(free_cells_count == (ram_heap_size - 13),
+      "Free Cells count expected to be at %d but is %d",
+      ram_heap_size - 13,
+      free_cells_count
+    );
 
   TEST("Vector allocations");
 

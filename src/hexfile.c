@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "esp32-scheme-vm.h"
+#include "testing.h"
 
 #define HEXFILE 1
 #include "hexfile.h"
@@ -50,7 +51,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   bool     error;
 
   if ((f = fopen(filename, "r")) == NULL) {
-    ERROR_MSG("read_hex_file: Unable to open file %s.\n", filename);
+    ERROR_MSG("read_hex_file: Unable to open file %s.", filename);
     return false;
   }
 
@@ -58,7 +59,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
 
   while (!feof(f) && !completed && !error) {
     if (fgets(line, 200, f) == NULL) {
-      ERROR_MSG("read_hex_file: I/O Error reading file %s.\n", filename);
+      ERROR_MSG("read_hex_file: I/O Error reading file %s.", filename);
       return false;
     }
     ptr = line;
@@ -84,7 +85,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
           break;
 
         default :
-          WARNING_MSG("read_hex_file: Unsupported record type: %d.\n", type);
+          WARNING_MSG("read_hex_file: Unsupported record type: %d.", type);
           while (len--) hex2byte(&ptr);
           break;
       }
@@ -104,9 +105,10 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   return !error;
 }
 
-#if TESTING
+#if TESTS
 void hexfile_tests()
 {
+  TESTM("hexfile");
 
 }
 #endif
