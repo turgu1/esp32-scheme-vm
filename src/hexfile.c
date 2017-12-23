@@ -38,7 +38,7 @@ PRIVATE uint16_t hex2short(char **str)
   return val;
 }
 
-bool read_hex_file(char * filename, char * buffer, int size)
+bool read_hex_file(char * filename, uint8_t * buffer, int size)
 {
   char line[200];
 
@@ -50,7 +50,7 @@ bool read_hex_file(char * filename, char * buffer, int size)
   bool     error;
 
   if ((f = fopen(filename, "r")) == NULL) {
-    ERROR("read_hex_file: Unable to open file %s\n", filename);
+    ERROR_MSG("read_hex_file: Unable to open file %s.\n", filename);
     return false;
   }
 
@@ -58,7 +58,7 @@ bool read_hex_file(char * filename, char * buffer, int size)
 
   while (!feof(f) && !completed && !error) {
     if (fgets(line, 200, f) == NULL) {
-      ERROR("read_hex_file: I/O Error reading file %s\n", filename);
+      ERROR_MSG("read_hex_file: I/O Error reading file %s.\n", filename);
       return false;
     }
     ptr = line;
@@ -72,7 +72,7 @@ bool read_hex_file(char * filename, char * buffer, int size)
       switch (type) {
         case 0 :  // Data
           if ((addr + len) > size) {
-            ERROR("read_hex_file: Buffer too short\n");
+            ERROR("read_hex_file", "buffer too short");
             error = true;
           }
           while (len--) buffer[addr++] = hex2byte(&ptr);
@@ -84,7 +84,7 @@ bool read_hex_file(char * filename, char * buffer, int size)
           break;
 
         default :
-          WARNING("read_hex_file: Unsupported record type: %d\n", type);
+          WARNING_MSG("read_hex_file: Unsupported record type: %d.\n", type);
           while (len--) hex2byte(&ptr);
           break;
       }
@@ -92,7 +92,7 @@ bool read_hex_file(char * filename, char * buffer, int size)
       if (!error) {
         hex2byte(&ptr);
         if (checksum != 0) {
-          ERROR("read_hex_file: Bad Checksum.");
+          ERROR("read_hex_file", "Bad Checksum");
           error = true;
         }
       }
@@ -103,3 +103,10 @@ bool read_hex_file(char * filename, char * buffer, int size)
 
   return !error;
 }
+
+#if TESTING
+void hexfile_tests()
+{
+
+}
+#endif

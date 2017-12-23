@@ -13,23 +13,105 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "mm.h"
+#include "hexfile.h"
+#include "kb.h"
 
-bool initialisations()
+bool testing = false;
+
+#if TESTING
+  #include "tests.h"
+
+  void conduct_tests()
+  {
+    tested_count = failed_count = 0;
+
+    kb_tests();
+    mm_tests();
+    vm_arch_tests();
+    builtins_computer_tests();
+    builtins_control_tests();
+    builtins_list_tests();
+    builtins_numeric_tests();
+    builtins_util_tests();
+    builtins_vector_tests();
+    hexfile_tests();
+    interpreter_tests();
+
+    printf("\n\n--------------------\nTests completed: %d\nTests failed: %d\n--------------------\n", tested_count, failed_count);
+  }
+#endif
+
+bool initialisations(char * program_filename)
 {
-  if (!mm_init()) return false;
-  init_vm_arch();
+  if ((program = calloc(65536, 1)) == NULL) {
+    FATAL("initialisations", "Unable to allocate program space");
+  }
+
+  if (!read_hex_file(program_filename, program, 65536)) return false;
+
+  if (!mm_init(*(program + 3))) return false;
+
+  vm_arch_init();
+
+  kb_init();
 
   return true;
 }
 
+void terminate()
+{
+  fflush(stdout);
+  kb_restore();
+  exit(1);
+}
+
+void usage(char * exename)
+{
+  fprintf(stderr, "Usage: %s [-t | -T] filename\n", exename);
+}
+
 #ifdef COMPUTER
-  int main()
+  int main(int argc, char **argv)
 #else
   void app_main()
 #endif
 {
-  if (!initialisations()) {
-    printf("ERROR - Unable to properly initialise the environment\n");
+  #ifdef COMPUTER
+    int opt = 0;
+    trace = false;
+    char *fname;
+    while ((opt = getopt(argc, argv, "tT")) != -1) {
+      switch (opt) {
+        #if TESTING
+          case 'T':
+            testing = true;
+            conduct_tests();
+            return 0;
+            break;
+        #endif
+        #if TRACING
+          case 't':
+            trace = true;
+            break;
+          case '?':
+            usage(argv[0]);
+            return 1;
+            break;
+        #endif
+      }
+    }
+    if ((optind > 0) && (argc > optind)) {
+      fname = argv[optind];
+    }
+    else {
+      usage(argv[0]);
+      return 1;
+    }
+    if (!initialisations(fname)) {
+  #else
+    if (!initialisations("program.hex")) {
+  #endif
+    ERROR("main", "Unable to properly initialise the environment");
     #ifdef ESP32
       esp_restart();
       for (int i = 10; i >= 0; i--) {
@@ -39,8 +121,11 @@ bool initialisations()
     #endif
   }
 
-  printf("Cell size: %lu\n", sizeof(cell));
-  printf("Execution completed\n");
+  INFO_MSG("main: Cell size: %lu\n", sizeof(cell));
+  INFO("main", "Execution completed");
+
+  terminate();
+
   return 0;
 }
 

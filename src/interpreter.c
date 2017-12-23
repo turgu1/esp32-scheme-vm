@@ -5,73 +5,142 @@
 #define INTERPRETER 1
 #include "interpreter.h"
 
+#include "gen.builtins.h"
+
 #define NEXT_BYTE *pc++
 #define NEXT_SHORT ((uint16_t) *(uint16_t *)pc++); pc += 2
 #define NEXT_SHORT_NOINC ((uint16_t) *(uint16_t *)pc++)
 
-cell_p pop()
+/** tos().
+
+  Returns the cons in front of the stack. Get rid of
+  it from the stack.
+ */
+
+cell_p tos()
 {
-  // all the cons linking stack elements together are from the RAM Heap.
-  #if DEBUGGING
-    if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
-      FATAL("HEAP BROKEN!!!");
-    }
-  #endif
+  cell_p p = env;
 
   if (env == NIL) {
-    #if DEBUGGING
-      WARNING("Environment exhausted on pop()\n");
-    #endif
-
-    return NIL;
+    FATAL("tos", "Environment exhausted");
   }
-  cell_p p = RAM_GET_CAR_NO_TEST(env);
-  env = RAM_GET_CDR_NO_TEST(env);
+  else {
+    env = RAM_GET_CDR_NO_TEST(env);
+  }
 
   return p;
 }
 
-cell_p pop_closure(code_p *entry)
+/** prepare_arguments().
+
+  Prepares reg1 for the following cases:
+
+  1. Fixed number of arguments: reg1 will point on the
+     lexical environment
+
+  2. Variable number of arguments: reg1 will point on a cons
+     which car is the list of remaining arguments and the cdr is the
+     lexical environment.
+
+  entry is updated to point to the first executable instruction
+        of the procedure.
+
+  The stack must contains arguments and the closure for the call
+ */
+
+uint8_t prepare_arguments(int8_t nbr_args)
 {
-  cell_p tmp = pop();
-  if (IN_RAM(tmp)) {
-    if (IS_CLOSURE(tmp)) {
-      *entry = RAM_GET_CLOSURE_ENTRY_POINT(tmp);
+  // Retrieve closure from stack, keep the cons for later
+  reg2 = tos();
+  reg1 = RAM_GET_CAR_NO_TEST(reg2);
+
+  if (IN_RAM(reg1)) {
+    if (RAM_IS_CLOSURE(reg1)) {
+      entry = RAM_GET_CLOSURE_ENTRY_POINT(reg1);
     }
     else {
-      FATAL("Expected closure cell at %d.\n", tmp);
+      FATAL_MSG("prepare_arguments: Expected closure cell at %d.\n", reg1);
     }
   }
   else {
-    FATAL("Closure on TOS not in RAM: %d.\n", tmp);
+    FATAL_MSG("prepare_arguments: Closure on TOS not in RAM: %d.\n", reg1);
   }
-  return tmp;
-}
 
-unit8_t prepare_arguments(int8_t nbr_args, code_p *entry)
-{
-  uint8_t nbr_params = *(program + *entry++);
+  // Retrieve number of arguments expected in the procedure entry point
+  uint8_t nbr_params = *(program + entry++);
 
   if (reg1 != NIL) {
     // reg1 is the closure definitions
     reg1 = RAM_GET_CLOSURE_ENV(reg1); // retrieve the environment
   }
 
-  if ()
+  if ((nbr_args & 0x80) == 0) {
+    if (nbr_args != nbr_params) {
+      ERROR_MSG("prepare_arguments: Wrong number of arguments (%d vs %d).\n", nbr_args, nbr_params);
+    }
+  }
+  else {
+    // if nbr_params is 1st complement, the function accepts a dynamic
+    // number of parameters
+    nbr_params = ~nbr_params;
+
+    // nbr_params is the number of fixed parameters.
+
+    if (nbr_args < nbr_params) {
+      ERROR("prepare_arguments", "Wrong number of arguments");
+    }
+
+    reg3 = NIL;
+
+    // The loop is optimized to reuse the stack cons cells instead
+    // of freeing and reallocating a cons. Save some garbage collecting job...
+    while (nbr_args-- > nbr_params) {
+      reg4 = tos();
+      RAM_SET_CDR_NO_TEST(reg4, reg3);
+      reg3 = reg4;
+      //reg3 = new_pair(pop(), reg3);
+    }
+    RAM_SET_CDR_NO_TEST(reg2, reg1);
+    RAM_SET_CAR_NO_TEST(reg2, reg3);
+    reg1 = reg2;
+    reg3 = reg4 = NIL;
+    nbr_args++;
+  }
+
+  reg2 = NIL;
+  return nbr_args;
+}
+
+void save_cont()
+{
+  cont = new_cont(cont, new_closure(env, pc - program));
+}
+
+/** build_environment.
+
+  This method complete the preparation of the argument list for the
+  procedure to be called. The arguments are put in front of the
+  content of reg1 as list. See the prepare_arguments for the preparation
+  to be done bedore calling this function.
+
+ */
+
+void build_environment(uint8_t nbr_args)
+{
+  // The loop is optimized to reuse the stack cons cells instead
+  // of freeing and reallocating a cons. Save some garbage collecting job...
+  while (nbr_args--) {
+    reg2 = tos();
+    RAM_SET_CDR_NO_TEST(reg2, reg1);
+    reg1 = reg2;
+    //reg1 = new_pair(pop(), reg1)
+  }
+  reg2 = NIL;
 }
 
 void interpreter()
 {
-  code_p entry;
-
-  reg1 =
-  reg2 =
-  reg3 =
-  reg4 =
-  cont =
-  env  = NIL;
-
-  pc =  + ((*(program + 2) * sizeof(cell)));
+  pc = program + (*(program + 2));
 
   for (;;) {
     uint8_t instr = NEXT_BYTE;
@@ -82,62 +151,72 @@ void interpreter()
         reg1 = instr & 0x1F;
         TRACE("  LDCS %d\n", reg1);
         if (reg1 < 29)
-          env = cons(reg1 |= 0xFE00, env);
+          env = new_pair(reg1 |= 0xFE00, env);
         else
-          env = cons(reg1 |= 0xFF70, env);
+          env = new_pair(reg1 |= 0xFF70, env);
         reg1 = NIL;
         break;
 
       case LDSTK1 :
       case LDSTK2 :
-        uint8_t cnt = instr & 0x1F;
-        TRACE("  LDSTK %d\n", cnt);
+        reg2 = instr & 0x1F;
+        TRACE("  LDSTK %d\n", reg2);
 
         reg1 = env;
-        while (cnt-- && (reg1 != NIL)) {
+        while (reg2-- && (reg1 != NIL)) {
           reg1 = RAM_GET_CDR(reg1);
         }
-        env = cons(reg1 == NIL ? NIL : RAM_GET_CAR(reg1), env);
-        reg1 = NIL;
+        env = new_pair(reg1 == NIL ? NIL : RAM_GET_CAR(reg1), env);
+        reg1 = reg2 = NIL;
         break;
 
       case LDS :
-        cell_p p = instr & 0x0F;
-        TRACE("  LDS %d\n", p);
-        reg1 = GLOBAL_GET(p);
-        env = cons(reg1, env);
-        reg1 = NIL;
+        reg2 = instr & 0x0F;
+        TRACE("  LDS %d\n", reg2);
+        reg1 = GLOBAL_GET(reg2);
+        env = new_pair(reg1, env);
+        reg1 = reg2 = NIL;
         break;
 
       case STS :
-        cell_p p = instr & 0x0F;
-        TRACE("  STS %d\n", p);
-        GLOBAL_SET(p, pop());
+        reg2 = instr & 0x0F;
+        TRACE("  STS %d\n", reg2);
+        GLOBAL_SET(reg2, pop());
+        reg2 = NIL;
         break;
 
       case CALLC :  // Call with closure on TOS
-        uint8_t n = instr & 0x0F;
-        TRACE("  CALLC %d\n", n);
-        reg1 = pop_closure(&entry);
-        build_environment(prepare_arguments(n, &entry));
+        reg2 = instr & 0x0F;
+        TRACE("  CALLC %d\n", reg2);
+        build_environment(prepare_arguments(reg2));
         save_cont();
 
+        env = reg1;
         pc = program + entry;
-        reg1 = NIL;
+        reg1 = reg2 = NIL;
         break;
 
       case JUMPC :
-        uint8_t n = instr & 0x0F;
-        TRACE("  JUMPC %d\n", n);
-        reg1 = pop_closure(&entry);
-        build_environment(prepare_arguments(n, &entry));
+        reg2 = instr & 0x0F;
+        TRACE("  JUMPC %d\n", reg2);
+        build_environment(prepare_arguments(reg2));
 
+        env = reg1;
         pc = program + entry;
-        reg1 = NIL;
+        reg1 = reg2 = NIL;
         break;
 
       case JUMPS :
-        TRACE("  JUMPS\n");
+        entry = (pc - program) + (instr & 0x0F);
+        TRACE("  JUMPS %d\n", entry);
+
+        reg1 = NIL;
+        build_environment(*(program + entry++));
+
+        env = reg1;
+        pc = program + entry;
+
+        reg1 = NIL;
         break;
 
       case BRSF :
@@ -150,79 +229,155 @@ void interpreter()
       case LDC :
         reg1 = ((instr & 1) << 8) + NEXT_BYTE;
         TRACE("  LDC %d\n", reg1);
-        env = cons(reg1 | 0xFE00, env);
+        env = new_pair(reg1 | 0xFE00, env);
         reg1 = NIL;
         break;
 
-      case CALL:
+      case CALL: //  Call top-level procedure
         switch (instr) {
           case CALL :
-            TRACE("  CALL\n");
+            entry = NEXT_SHORT;
+            TRACE("  CALL %d\n", entry);
+
+            reg1 = NIL;
+            build_environment(*(program + entry++));
+            save_cont();
+
+            env = reg1;
+            pc = program + entry;
+
+            reg1 = NIL;
             break;
 
-          case JUMP :
-            TRACE("  JUMP\n");
+          case JUMP : // Jump to top-level procedure
+            entry = NEXT_SHORT;
+            TRACE("  JUMP %d\n", entry);
+
+            reg1 = NIL;
+            build_environment(*(program + entry++));
+
+            env = reg1;
+            pc = program + entry;
+
+            reg1 = NIL;
             break;
 
           case BR :
-            uint16_t addr = NEXT_SHORT;
-            TRACE("  BR %d\n", addr);
-            pc = addr + program;
+            entry = NEXT_SHORT;
+            TRACE("  BR %d\n", entry);
+            pc = entry + program;
             break;
 
           case BRF :
-            uint16_t addr = NEXT_SHORT;
-            TRACE("  BRF %d\n", addr);
+            entry = NEXT_SHORT;
+            TRACE("  BRF %d\n", entry);
             if (pop() == FALSE) {
-              pc = addr + program;
+              pc = entry + program;
             }
             break;
 
           case CLOS :
-            TRACE("  CLOS\n");
+            entry = NEXT_SHORT;
+            TRACE("  CLOS %d\n", entry);
+
+            reg2 = tos();
+            reg3 = RAM_GET_CAR_NO_TEST(reg2); // env
+            reg1 = new_closure(reg3, entry);
+
+            RAM_SET_CDR_NO_TEST(reg2, env);  // Already set, but anyway...
+            RAM_SET_CAR_NO_TEST(reg2, reg1);
+
+            env = reg2;
+            reg1 = reg2 = reg3 = NIL;
             break;
 
           case CALLR :
-            TRACE("  CALLR\n");
+            entry = NEXT_BYTE;
+            TRACE("  CALLR %d\n", entry);
+
+            entry += (pc - program) - 128;
+            reg1 = NIL;
+            build_environment(*(program + entry++));
+            save_cont();
+
+            env = reg1;
+            pc = program + entry;
+
+            reg1 = NIL;
             break;
 
           case JUMPR :
-            TRACE("  JUMPR\n");
+            entry = NEXT_BYTE;
+
+            TRACE("  JUMPR %d\n", entry);
+
+            entry += (pc - program) - 128;
+            reg1 = NIL;
+            build_environment(*(program + entry++));
+
+            env = reg1;
+            pc = program + entry;
+
+            reg1 = NIL;
             break;
 
           case BRR :
-            int16_t i = NEXT_BYTE;
-            TRACE("  BRR %d\n", addr);
-            pc += (i - 128);
+            entry = NEXT_BYTE;
+            TRACE("  BRR %d\n", entry);
+            pc = (pc + entry) - 128;
             break;
 
           case BRRF :
-            int16_t i = NEXT_BYTE;
-            TRACE("  BRRF %d\n", addr);
+            entry = NEXT_BYTE;
+            TRACE("  BRRF %d\n", entry);
             if (pop() == FALSE) {
-              pc += (i - 128);
+              pc = (pc + entry) - 128;
             }
             break;
 
           case CLOSR :
-            TRACE("  CLOSR\n");
+            entry = NEXT_BYTE ;
+            TRACE("  CLOSR %d\n", entry);
+
+            entry +=  (pc - program)- 128;
+
+            reg2 = tos();
+            reg3 = RAM_GET_CAR_NO_TEST(reg2); // env
+            reg1 = new_closure(reg3, entry);
+
+            RAM_SET_CDR_NO_TEST(reg2, env);  // Already set, but anyway...
+            RAM_SET_CAR_NO_TEST(reg2, reg1);
+
+            env = reg2;
+            reg1 = reg2 = reg3 = NIL;
             break;
 
           case LD  :
-            cell_p p = NEXT_BYTE;
-            TRACE("  LD %d\n", p);
-            reg1 = GLOBAL_GET(p);
-            env = cons(reg1, env);
-            reg1 = NIL;
+            reg2 = NEXT_BYTE;
+            TRACE("  LD %d\n", reg2);
+            reg1 = GLOBAL_GET(reg2);
+            env = new_pair(reg1, env);
+            reg1 = reg2 = NIL;
             break;
 
           case ST :
-            cell_p p = NEXT_BYTE;
-            TRACE("  ST %d\n", p);
-            GLOBAL_SET(p, pop());
+            reg2 = NEXT_BYTE;
+            TRACE("  ST %d\n", reg2);
+            GLOBAL_SET(reg2, pop());
             break;
         }
         break;
+      #ifndef NO_BUILTIN_EXPAND
+        #include "gen.dispatch.h"
+      #endif
     }
   }
 }
+
+
+#if TESTING
+void interpreter_tests()
+{
+
+}
+#endif

@@ -7,7 +7,7 @@
   #define PUBLIC extern
 #endif
 
-bool read_hex_file(char * filename, char * buffer, int size);
+bool read_hex_file(char * filename, uint8_t * buffer, int size);
 
 #undef PUBLIC
 #endif

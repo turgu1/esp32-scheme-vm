@@ -1,6 +1,7 @@
 *.o
 *.d
 scheme
+.builtins.p
 
 .DS_Store
 .DS_Store?

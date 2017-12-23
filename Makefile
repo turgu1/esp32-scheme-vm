@@ -67,5 +67,17 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(BUILDDIR)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(BUILDDIR)/$*.$(DEPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
+builtin-gen = gawk -f scripts/scanner.awk -f scripts/builtin-$(1).awk .builtins.p >$(2)
+
+.builtins.p: $(SOURCES)
+	rm -f $@
+	for object in $(SOURCES); do \
+		gcc -E -DNO_BUILTIN_EXPAND $(CFLAGS) $(INC) \
+			$$object -o - >>$@; \
+	done
+	$(call builtin-gen,headergen,inc/gen.builtins.h)
+	$(call builtin-gen,schemegen,gen/gen.builtins.rkt)
+	$(call builtin-gen,dispatchgen,inc/gen.dispatch.h)
+
 #Non-File Targets
 .PHONY: all run remake clean cleaner resources

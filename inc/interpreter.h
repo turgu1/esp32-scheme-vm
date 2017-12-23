@@ -2,9 +2,9 @@
 #define INTERPRETER_H
 
 #ifdef INTERPRETER
-# define PUBLIC
+  #define PUBLIC
 #else
-# define PUBLIC extern
+  #define PUBLIC extern
 #endif
 
 /** Code Interpreter.
@@ -16,4 +16,11 @@
   a read-only portion of the memory map and is byte addresable.
 
  */
+
+PUBLIC uint8_t prepare_arguments(int8_t nbr_args);
+PUBLIC void build_environment(uint8_t nbr_args);
+
 PUBLIC void interpreter();
+
+#undef PUBLIC
+#endif
