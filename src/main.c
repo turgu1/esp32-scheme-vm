@@ -15,7 +15,7 @@
 #include "mm.h"
 #include "hexfile.h"
 #include "kb.h"
-
+#include "interpreter.h"
 #include "testing.h"
 
 bool initialisations(char * program_filename)
@@ -26,7 +26,7 @@ bool initialisations(char * program_filename)
 
   if (!read_hex_file(program_filename, program, 65536)) return false;
 
-  if (!mm_init(*(program + 3))) return false;
+  if (!mm_init(program)) return false;
 
   vm_arch_init();
 
@@ -44,8 +44,28 @@ void terminate()
 
 void usage(char * exename)
 {
-  fprintf(stderr, "Usage: %s [-t | -T] filename\n", exename);
+  fprintf(stderr, 
+    "Usage: %s [options] filename\n"
+    "\nOptions:\n"
+    #if TRACING
+      "  -t  Trace\n"
+    #endif
+    #if TESTS
+      "  -T  Tests\n"
+    #endif
+    "  -v  Version\n"
+    "  -V  Verbose\n"
+    "  -?  Print this message\n", exename);
 }
+
+char * options = "vV?"
+#if TRACING
+  "t"
+#endif
+#if TESTS
+  "T"
+#endif
+;
 
 #ifdef COMPUTER
   int main(int argc, char **argv)
@@ -56,9 +76,13 @@ void usage(char * exename)
   #ifdef COMPUTER
     int opt = 0;
     trace = false;
+    verbose = false;
     char *fname;
-    while ((opt = getopt(argc, argv, "tTv")) != -1) {
+    while ((opt = getopt(argc, argv, options)) != -1) {
       switch (opt) {
+        case 'V':
+          verbose = true;
+          break;
         #if TESTS
           case 'T':
             conduct_tests();
@@ -69,17 +93,21 @@ void usage(char * exename)
           case 't':
             trace = true;
             break;
-          case '?':
-            usage(argv[0]);
-            return 1;
-            break;
         #endif
-
+        case '?':
+          usage(argv[0]);
+          return 1;
+          break;
         case 'v':
           printf("%d.%d\n", VERSION_MAJOR, VERSION_MINOR);
-          break;
+          return 0;
+        default:
+          printf("Unknown option!\n");
+          usage(argv[0]);
+          return 1;
       }
     }
+    
     if ((optind > 0) && (argc > optind)) {
       fname = argv[optind];
     }
@@ -101,8 +129,11 @@ void usage(char * exename)
     #endif
   }
 
-  INFO_MSG("main: Cell size: %lu.", sizeof(cell));
-  INFO("main", "Execution completed");
+  interpreter();
+
+  #if DEBUGGING
+    INFO("main", "Execution completed");
+  #endif
 
   terminate();
 

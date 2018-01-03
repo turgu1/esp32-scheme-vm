@@ -1,0 +1,4 @@
+#lang racket
+
+(define code-start #x0000)
+(provide code-start)

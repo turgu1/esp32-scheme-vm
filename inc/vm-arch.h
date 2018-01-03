@@ -21,19 +21,19 @@
 
 /** Cells Definitions.
 
-  Every cell is 40 bits long (5 bytes). To get good memory compaction, the following
-  option must be user for gcc:
+  Every cell is 40 bits long (5 bytes). To get proper memory compaction, the
+  following option must be user for gcc:
 
      -fpack-struct=1
 
   On the ESP32, alignement doesn't seems to have any issue on the performance
-  of the code. At least sequential RAM access runs at the same speed even when 16 bits words
-  are accessed, aligned or not.
+  of the code. At least sequential RAM access runs at the same speed even when
+  16 bits words are accessed, aligned or not.
 
   ToDo: Random access remains to be checked
 
-  The address space of the heap cannot go beyond (64k * 5). To address 128K cells,
-  we need 16 bits (2ˆ16 = 64k).
+  The address space of the heap cannot go beyond (64k * 5). To address 64K
+  cells, we need 16 bits (2ˆ16 = 64k).
 
   - The 2 first bit are 0
   - The 4 following bits are the type of a cell
@@ -88,14 +88,16 @@
       A zero length string will have NIL into chars ptr.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1010 | GC |  CHARS LIST   |        0       |
+      | 00 | 1010 | GC |  CHARS LIST   |      NIL       |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
   cstring
 
+      For now, no cstring are present. The following will be implemented later.
+
       A string constant is a null terminated string located in the ROM space,
-      in the cstring pool.
+      in the cstring pool (?).
 
       +----+------+----+---------------+----------------+
       | 00 | 1011 | GC |   CHARS PTR   |       0        |
@@ -114,10 +116,20 @@
 
    symbol
 
-      The Symbol table is in the rom area. The char list is an index (byte index in
-      the constant string pool) to a null terminated string containing the human
-      representation of the symbol. Next point to the next synbol cell in the
-      symbol table. The chars list pointer in unique for each symbol.
+      For now, no symbols are present. A symbol as a constant will be showned
+      that way:
+
+      +----+------+----+---------------+----------------+
+      | 00 | 1101 | GC |      NIL      |       NIL      |
+      +----+------+----+---------------+----------------+
+         2     4     2        16               16
+
+      The following will be implemented later.
+
+      The Symbol table is in the rom area. The char list is an index (byte index
+      in the constant string pool) to a null terminated string containing the
+      human representation of the symbol. Next point to the next synbol cell in
+      the symbol table. The chars list pointer in unique for each symbol.
 
       +----+------+----+---------------+----------------+
       | 00 | 1101 | GC |   CHARS LST   |       NEXT     |
@@ -204,10 +216,15 @@ typedef struct {
           vector_part vector;
           symbol_part symbol;
   };
-  unsigned int gc_mark : 1;
-  unsigned int gc_flip : 1;
-  unsigned int    type : 4;
-  unsigned int  unused : 2;
+  union {
+    struct {
+      unsigned int gc_mark : 1;
+      unsigned int gc_flip : 1;
+      unsigned int    type : 4;
+      unsigned int  unused : 2;
+    };
+    uint8_t bits;
+  };
 } cell;
 
 typedef cell * cell_ptr;
@@ -216,6 +233,7 @@ typedef cell * cell_ptr;
 
   Global variables are located at the beginning of the RAM Heap. As this
   heap is allocated on cell boundaries, we are putting 2 globals per cell.
+  Global access instructions limit to 256 globals.
 
  */
 
@@ -230,31 +248,40 @@ typedef cell * cell_ptr;
   0xFFFE           : #t
   0xFFFF           : NIL
 
+  ROM Space constants are receiving addresses starting at 0xC000.
+
   For the LDCS instruction, values are coded on 5 bits as follow:
 
-  +---------+----------+
-  |   ccccc |  result  |
-  +---------+----------+
-  | 0 .. 28 | -1 .. 27 |
-  |      29 | #f       |
-  |      30 | #t       |
-  |      31 | NIL      |
-  +---------+----------+
+  +---------+----------+------------------+
+  |   ccccc |  result  | addr mapping     |
+  +---------+----------+------------------+
+  |       0 |       #f | 0xFFFD           |
+  |       1 |       #t | 0xFFFE           |
+  |       2 |      NIL | 0xFFFF           |
+  | 3 .. 31 | -1 .. 27 | 0xFE00 .. 0xFE1C |
+  +---------+----------+------------------+
 
-  For the LDC instruction , values are coded on 9 bits as follow:
+  For the LDC instruction , values are coded on 12 bits as follow:
 
-  +-----------+------------+
-  | ccccccccc | result     |
-  +===========+============+
-  |  0 .. 256 | -1 .. 255  |
-  +-----------+------------+
+  +--------------+-----------+------------------+
+  | cccccccccccc |   result  | addr mapping     |
+  +--------------+-----------+------------------+
+  |            0 |        #f | 0xFFFD           |
+  |            1 |        #t | 0xFFFE           |
+  |            2 |       NIL | 0xFFFF           |
+  |     3 .. 259 | -1 .. 255 | 0xFE00 .. 0xFF00 |
+  | 260 ..       |   ROM IDX | 0xC000 ..        |
+  +--------------+-----------+------------------+
+
 */
 
-#define TRUE  ((cell_p) 0xFFF0)
-#define FALSE ((cell_p) 0xFFF1)
+#define FALSE ((cell_p) 0xFFFD)
+#define TRUE  ((cell_p) 0xFFFE)
 #define NIL   ((cell_p) 0xFFFF)
 
 /** Instructions.
+
+  The instructions are the same as the PICOBIT vm.
 
   LDCS    Load immediate small constant to TOS
           000ccccc
@@ -263,7 +290,8 @@ typedef cell * cell_ptr;
           001nnnnn
 
   LDS     Load global value to TOS, located at the beginning of the RAM Heap
-          Space. Only the first 16 entries are accessible through this instruction.          iiii is an index in the heap space.
+          Space. Only the first 16 entries are accessible through this
+          instruction. iiii is an index in the heap space.
           0100iiii
 
   STS     Store TOS to global variable. Only the first 16 entries are accessible
@@ -348,10 +376,10 @@ typedef cell * cell_ptr;
 #define LD          ((uint8_t) 0xBE)
 #define ST          ((uint8_t) 0xBF)
 
-#define BUILTIN1    ((uint8_t) 0xC0)
-#define BUILTIN2    ((uint8_t) 0xD0)
-#define BUILTIN3    ((uint8_t) 0xE0)
-#define BUILTIN4    ((uint8_t) 0xF0)
+#define PRIMITIVE1    ((uint8_t) 0xC0)
+#define PRIMITIVE2    ((uint8_t) 0xD0)
+#define PRIMITIVE3    ((uint8_t) 0xE0)
+#define PRIMITIVE4    ((uint8_t) 0xF0)
 
 #define SMALL_INT_START ((IDX) 0xFE00)
 #define SMALL_INT_MAX   ((IDX) 0xFE00 + 256)
@@ -386,20 +414,14 @@ typedef cell * cell_ptr;
 
 #define RAM_SET_TYPE(p, t) ram_heap[p].type = t
 
-#define RAM_GET_CAR(p) ((p < ram_heap_end) ? ram_heap[p].cons.car_p : NIL)
-#define RAM_GET_CDR(p) ((p < ram_heap_end) ? ram_heap[p].cons.cdr_p : NIL)
+#define RAM_GET_CAR(p) ram_heap[p].cons.car_p
+#define RAM_GET_CDR(p) ram_heap[p].cons.cdr_p
+
+#define RAM_SET_CAR(p, v) ram_heap[p].cons.car_p = v
+#define RAM_SET_CDR(p, v) ram_heap[p].cons.cdr_p = v
 
 #define ROM_GET_CAR(p) rom_heap[ROM_IDX(p)].cons.car_p
 #define ROM_GET_CDR(p) rom_heap[ROM_IDX(p)].cons.cdr_p
-
-#define RAM_SET_CAR(p, v) if (p < ram_heap_end) ram_heap[p].cons.car_p = v
-#define RAM_SET_CDR(p, v) if (p < ram_heap_end) ram_heap[p].cons.cdr_p = v
-
-#define RAM_SET_CAR_NO_TEST(p, v) ram_heap[p].cons.car_p = v
-#define RAM_SET_CDR_NO_TEST(p, v) ram_heap[p].cons.cdr_p = v
-
-#define RAM_GET_CAR_NO_TEST(p) ram_heap[p].cons.car_p
-#define RAM_GET_CDR_NO_TEST(p) ram_heap[p].cons.cdr_p
 
 // Fixnum
 
@@ -430,6 +452,11 @@ typedef cell * cell_ptr;
 #define VECTOR_GET_BYTE(p, i) *(((char *) &vector_heap[p]) + i)
 #define VECTOR_SET_BYTE(p, i, b) *(((char *) &vector_heap[p]) + i) = b
 
+// String
+
+#define RAM_STRING_GET_CHARS(p) ram_heap[p].string.chars_p
+#define ROM_STRING_GET_CHARS(p) rom_heap[ROM_IDX(p)].string.chars_p
+
 // Continuation
 
 #define RAM_GET_CONT_CLOSURE(p) ram_heap[p].continuation.closure_p
@@ -442,8 +469,8 @@ typedef cell * cell_ptr;
 
 // Globals
 
-#define GLOBAL_GET(i) ((i & 1) ? RAM_GET_CAR_NO_TEST(i >> 1) : RAM_GET_CDR_NO_TEST(i >> 1))
-#define GLOBAL_SET(i, p) if (i & 1) RAM_SET_CAR_NO_TEST(i >> 1, p); else RAM_SET_CDR_NO_TEST(i >> 1, p)
+#define GLOBAL_GET(i) ((i & 1) ? RAM_GET_CAR(i >> 1) : RAM_GET_CDR(i >> 1))
+#define GLOBAL_SET(i, p) if (i & 1) RAM_SET_CAR(i >> 1, p); else RAM_SET_CDR(i >> 1, p)
 
 #define ENCODE_BOOL(bool_value) (bool_value) ? TRUE : FALSE
 
@@ -459,9 +486,13 @@ typedef cell * cell_ptr;
 
 PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4;
 PUBLIC code_p entry;
-PUBLIC uint8_t * pc;
 PUBLIC uint8_t * program;
 PUBLIC int32_t a1, a2, a3;
+
+PUBLIC union {
+  uint8_t  * c;
+  uint16_t * s;
+} pc, last_pc;
 
 PUBLIC void vm_arch_init();
 

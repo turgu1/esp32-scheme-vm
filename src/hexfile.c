@@ -44,7 +44,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   char line[200];
 
   uint8_t  len;
-  uint16_t addr;
+  uint16_t addr, max_addr;
   uint8_t  type;
   char   * ptr;
   bool     completed;
@@ -56,6 +56,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   }
 
   completed = error = false;
+  max_addr = 0;
 
   while (!feof(f) && !completed && !error) {
     if (fgets(line, 200, f) == NULL) {
@@ -90,6 +91,8 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
           break;
       }
 
+      if (addr > max_addr) max_addr = addr;
+
       if (!error) {
         hex2byte(&ptr);
         if (checksum != 0) {
@@ -102,6 +105,13 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
 
   fclose (f);
 
+  #if DEBUGGING
+    INFO_MSG("read_hex_file: Load size: %u\n", max_addr);
+  #endif
+
+  // Little endian...
+  error = error || (buffer[0] != 0xD7) || (buffer[1] != 0xFB);
+
   return !error;
 }
 
@@ -110,5 +120,19 @@ void hexfile_tests()
 {
   TESTM("hexfile");
 
+  uint8_t * buffer;
+
+  buffer = calloc(40000, 1);
+  EXPECT_TRUE(buffer != NULL, "Buffer allocation problem");
+  if (buffer != NULL) {
+    bool result = read_hex_file("test.hex", buffer, 40000);
+    EXPECT_TRUE(result, "Unable to read test.hex properly");
+    if (result) {
+      // Little endian...
+      EXPECT_TRUE(buffer[0] == 0xD7, "Marker wrong at code location 0");
+      EXPECT_TRUE(buffer[1] == 0xFB, "Marker wrong at code location 1");
+      printf("Globals: %d Constants: %d", buffer[2], buffer[3]);
+    }
+  }
 }
 #endif

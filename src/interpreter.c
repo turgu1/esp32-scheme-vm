@@ -6,11 +6,10 @@
 #define INTERPRETER 1
 #include "interpreter.h"
 
-#include "gen.builtins.h"
+#include "gen.primitives.h"
 
-#define NEXT_BYTE *pc++
-#define NEXT_SHORT ((uint16_t) *(uint16_t *)pc++); pc += 2
-#define NEXT_SHORT_NOINC ((uint16_t) *(uint16_t *)pc++)
+#define NEXT_BYTE *pc.c++
+#define NEXT_SHORT *pc.s++
 
 /** tos().
 
@@ -26,7 +25,7 @@ cell_p tos()
     FATAL("tos", "Environment exhausted");
   }
   else {
-    env = RAM_GET_CDR_NO_TEST(env);
+    env = RAM_GET_CDR(env);
   }
 
   return p;
@@ -53,7 +52,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
 {
   // Retrieve closure from stack, keep the cons for later
   reg2 = tos();
-  reg1 = RAM_GET_CAR_NO_TEST(reg2);
+  reg1 = RAM_GET_CAR(reg2);
 
   if (IN_RAM(reg1)) {
     if (RAM_IS_CLOSURE(reg1)) {
@@ -75,7 +74,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
     reg1 = RAM_GET_CLOSURE_ENV(reg1); // retrieve the environment
   }
 
-  if ((nbr_args & 0x80) == 0) {
+  if ((nbr_params & 0x80) == 0) {
     if (nbr_args != nbr_params) {
       ERROR_MSG("prepare_arguments: Wrong number of arguments (%d vs %d).", nbr_args, nbr_params);
     }
@@ -97,12 +96,12 @@ uint8_t prepare_arguments(int8_t nbr_args)
     // of freeing and reallocating a cons. Save some garbage collecting job...
     while (nbr_args-- > nbr_params) {
       reg4 = tos();
-      RAM_SET_CDR_NO_TEST(reg4, reg3);
+      RAM_SET_CDR(reg4, reg3);
       reg3 = reg4;
       //reg3 = new_pair(pop(), reg3);
     }
-    RAM_SET_CDR_NO_TEST(reg2, reg1);
-    RAM_SET_CAR_NO_TEST(reg2, reg3);
+    RAM_SET_CDR(reg2, reg1);
+    RAM_SET_CAR(reg2, reg3);
     reg1 = reg2;
     reg3 = reg4 = NIL;
     nbr_args++;
@@ -114,7 +113,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
 
 void save_cont()
 {
-  cont = new_cont(cont, new_closure(env, pc - program));
+  cont = new_cont(cont, new_closure(env, pc.c - program));
 }
 
 /** build_environment.
@@ -132,7 +131,7 @@ void build_environment(uint8_t nbr_args)
   // of freeing and reallocating a cons. Save some garbage collecting job...
   while (nbr_args--) {
     reg2 = tos();
-    RAM_SET_CDR_NO_TEST(reg2, reg1);
+    RAM_SET_CDR(reg2, reg1);
     reg1 = reg2;
     //reg1 = new_pair(pop(), reg1)
   }
@@ -141,9 +140,12 @@ void build_environment(uint8_t nbr_args)
 
 void interpreter()
 {
-  pc = program + (*(program + 2));
+  pc.c = program + (program[2] * 5) + 4;
 
   for (;;) {
+    #if TRACING
+      last_pc = pc;
+    #endif
     uint8_t instr = NEXT_BYTE;
 
     switch (instr & 0xF0) {
@@ -151,10 +153,12 @@ void interpreter()
       case LDCS2 :
         reg1 = instr & 0x1F;
         TRACE("  LDCS %d\n", reg1);
-        if (reg1 < 29)
-          env = new_pair(reg1 |= 0xFE00, env);
-        else
-          env = new_pair(reg1 |= 0xFF70, env);
+        if (reg1 < 3) {
+          env = new_pair(reg1 + 0xFFFD, env);
+        }
+        else {
+          env = new_pair((reg1 - 3) + 0xFE00, env);
+        }
         reg1 = NIL;
         break;
 
@@ -193,7 +197,7 @@ void interpreter()
         save_cont();
 
         env = reg1;
-        pc = program + entry;
+        pc.c = program + entry;
         reg1 = reg2 = NIL;
         break;
 
@@ -203,19 +207,19 @@ void interpreter()
         build_environment(prepare_arguments(reg2));
 
         env = reg1;
-        pc = program + entry;
+        pc.c = program + entry;
         reg1 = reg2 = NIL;
         break;
 
       case JUMPS :
-        entry = (pc - program) + (instr & 0x0F);
+        entry = (pc.c - program) + (instr & 0x0F);
         TRACE("  JUMPS %d\n", entry);
 
         reg1 = NIL;
         build_environment(*(program + entry++));
 
         env = reg1;
-        pc = program + entry;
+        pc.c = program + entry;
 
         reg1 = NIL;
         break;
@@ -223,14 +227,22 @@ void interpreter()
       case BRSF :
         TRACE("  BRSF %d\n", instr & 0x0F);
         if (pop() == FALSE) {
-          pc += (instr & 0x0F);
+          pc.c += (instr & 0x0F);
         }
         break;
 
       case LDC :
-        reg1 = ((instr & 1) << 8) + NEXT_BYTE;
+        reg1 = ((instr & 0x0F) << 8) + NEXT_BYTE;
         TRACE("  LDC %d\n", reg1);
-        env = new_pair(reg1 | 0xFE00, env);
+        if (reg1 < 3) {
+          env = new_pair(reg1 += 0xFFFD, env);
+        }
+        else if (reg1 < 260) {
+          env = new_pair((reg1 - 3) + 0xFE00, env);
+        }
+        else {
+          env = new_pair((reg1 - 260) + 0xC000, env);
+        }
         reg1 = NIL;
         break;
 
@@ -245,7 +257,7 @@ void interpreter()
             save_cont();
 
             env = reg1;
-            pc = program + entry;
+            pc.c = program + entry;
 
             reg1 = NIL;
             break;
@@ -258,7 +270,7 @@ void interpreter()
             build_environment(*(program + entry++));
 
             env = reg1;
-            pc = program + entry;
+            pc.c = program + entry;
 
             reg1 = NIL;
             break;
@@ -266,14 +278,14 @@ void interpreter()
           case BR :
             entry = NEXT_SHORT;
             TRACE("  BR %d\n", entry);
-            pc = entry + program;
+            pc.c = entry + program;
             break;
 
           case BRF :
             entry = NEXT_SHORT;
             TRACE("  BRF %d\n", entry);
             if (pop() == FALSE) {
-              pc = entry + program;
+              pc.c = entry + program;
             }
             break;
 
@@ -282,11 +294,11 @@ void interpreter()
             TRACE("  CLOS %d\n", entry);
 
             reg2 = tos();
-            reg3 = RAM_GET_CAR_NO_TEST(reg2); // env
+            reg3 = RAM_GET_CAR(reg2); // env
             reg1 = new_closure(reg3, entry);
 
-            RAM_SET_CDR_NO_TEST(reg2, env);  // Already set, but anyway...
-            RAM_SET_CAR_NO_TEST(reg2, reg1);
+            RAM_SET_CDR(reg2, env);  // Already set, but anyway...
+            RAM_SET_CAR(reg2, reg1);
 
             env = reg2;
             reg1 = reg2 = reg3 = NIL;
@@ -294,60 +306,54 @@ void interpreter()
 
           case CALLR :
             entry = NEXT_BYTE;
+            entry = (pc.c - program) + entry - 128;
             TRACE("  CALLR %d\n", entry);
-
-            entry += (pc - program) - 128;
             reg1 = NIL;
             build_environment(*(program + entry++));
             save_cont();
-
             env = reg1;
-            pc = program + entry;
-
+            pc.c = program + entry;
             reg1 = NIL;
             break;
 
           case JUMPR :
             entry = NEXT_BYTE;
-
+            entry = (pc.c - program) + entry - 128;
             TRACE("  JUMPR %d\n", entry);
-
-            entry += (pc - program) - 128;
             reg1 = NIL;
             build_environment(*(program + entry++));
-
             env = reg1;
-            pc = program + entry;
-
+            pc.c = program + entry;
             reg1 = NIL;
             break;
 
           case BRR :
             entry = NEXT_BYTE;
+            entry =  (pc.c - program) + entry - 128;
             TRACE("  BRR %d\n", entry);
-            pc = (pc + entry) - 128;
+            pc.c = program + entry;
             break;
 
           case BRRF :
             entry = NEXT_BYTE;
+            entry =  (pc.c - program) + entry - 128;
             TRACE("  BRRF %d\n", entry);
             if (pop() == FALSE) {
-              pc = (pc + entry) - 128;
+              pc.c = program + entry;
             }
             break;
 
           case CLOSR :
             entry = NEXT_BYTE ;
+            entry =  (pc.c - program) + entry - 128;
             TRACE("  CLOSR %d\n", entry);
 
-            entry +=  (pc - program)- 128;
-
             reg2 = tos();
-            reg3 = RAM_GET_CAR_NO_TEST(reg2); // env
+            reg3 = RAM_GET_CAR(reg2); // env
             reg1 = new_closure(reg3, entry);
 
-            RAM_SET_CDR_NO_TEST(reg2, env);  // Already set, but anyway...
-            RAM_SET_CAR_NO_TEST(reg2, reg1);
+            RAM_SET_CDR(reg2, env);  // Already set, but anyway...
+            RAM_SET_CAR(reg2, reg1);
 
             env = reg2;
             reg1 = reg2 = reg3 = NIL;
@@ -368,7 +374,7 @@ void interpreter()
             break;
         }
         break;
-      #ifndef NO_BUILTIN_EXPAND
+      #ifndef NO_PRIMITIVE_EXPAND
         #include "gen.dispatch.h"
       #endif
     }

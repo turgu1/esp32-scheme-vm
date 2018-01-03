@@ -13,11 +13,9 @@ void vm_arch_init()
 cell_p pop()
 {
   // all the cons linking stack elements together are from the RAM Heap.
-  #if DEBUGGING
-    if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
-      FATAL("pop.0", "HEAP BROKEN!!!");
-    }
-  #endif
+  if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
+    FATAL("pop.0", "HEAP BROKEN!!!");
+  }
 
   if (env == NIL) {
     #if DEBUGGING
@@ -26,8 +24,13 @@ cell_p pop()
 
     return NIL;
   }
-  cell_p p = RAM_GET_CAR_NO_TEST(env);
-  env = RAM_GET_CDR_NO_TEST(env);
+
+  cell_p p = RAM_GET_CAR(env);
+
+  cell_p f = env; // freed cell to be returned to the free cell list
+  env = RAM_GET_CDR(env);
+
+  return_to_free_list(f);
 
   return p;
 }
@@ -134,8 +137,8 @@ int32_t decode_int(cell_p p)
 
 void decode_2_int_args ()
 {
-	a1 = decode_int(reg1);
-	a2 = decode_int(reg2);
+  a1 = decode_int(reg1);
+  a2 = decode_int(reg2);
 }
 
 cell_p encode_int(int32_t val)
@@ -158,6 +161,12 @@ void vm_arch_tests()
   vm_arch_init();
 
   TESTM("vm-arch");
+
+  TEST("Cells Structure");
+
+    p = new_pair(0x0203, 0x0201);
+    EXPECT_TRUE(&ram_heap[p].cons.car_p > &ram_heap[p].cons.cdr_p, "Cells Structure is wrong");
+    EXPECT_TRUE((void *) &ram_heap[p].bits > (void *) &ram_heap[p].cons.car_p, "Cells Structure is wrong (type address must be larger than car address)");
 
   TEST("new_pair()");
 
@@ -214,5 +223,8 @@ void vm_arch_tests()
       EXPECT_TRUE(decode_int(q) == i, "Small Int decoding wrong");
     }
     EXPECT_TRUE(decode_int(p) == 1000, "Expected decoded value is not 1000");
+
+  env = NIL;
+  mm_gc();
 }
 #endif

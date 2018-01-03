@@ -27,10 +27,10 @@ extern void terminate();
   typedef enum { false, true } bool;
 #endif
 
-#define STATS     1
+#define STATS     0
 #define DEBUGGING 1
 #define TRACING   1
-#define TESTS     1
+#define TESTS     0
 
 #define STATISTICS (STATS || DEBUGGING)
 
@@ -40,38 +40,34 @@ extern void terminate();
   #define DEBUG(format, ...)
 #endif
 
-#if TRACING
-  #define TRACE(format, ...) { if (trace) printf(format, ## __VA_ARGS__); }
-#else
-  #define TRACE(format, ...)
-#endif
-
 #if DEBUGGING
-  #define   FATAL_MSG(format, ...) { printf(  "\nFATAL - In " # format, ## __VA_ARGS__); putchar('\n'); terminate(); }
-  #define   ERROR_MSG(format, ...) { printf(  "\nERROR - In " # format, ## __VA_ARGS__); putchar('\n'); }
-  #define WARNING_MSG(format, ...) { printf("\nWARNING - In " # format, ## __VA_ARGS__); putchar('\n'); }
-  #define    INFO_MSG(format, ...) { printf(   "\nINFO - In " # format, ## __VA_ARGS__); putchar('\n'); }
+  #define   FATAL_MSG(format, ...) { printf(  "\nFATAL - In " format, ## __VA_ARGS__); putchar('\n'); fflush(stdout); terminate(); }
+  #define   ERROR_MSG(format, ...) { printf(  "\nERROR - In " format, ## __VA_ARGS__); putchar('\n'); }
+  #define WARNING_MSG(format, ...) { printf("\nWARNING - In " format, ## __VA_ARGS__); putchar('\n'); }
+  #define    INFO_MSG(format, ...) { if (verbose) { printf(   "\nINFO - In " format, ## __VA_ARGS__); putchar('\n'); } }
 
-  #define   FATAL(a, b) { printf(  "\nFATAL - In %s: %s.\n", a, b); terminate(); }
+  #define   FATAL(a, b) { printf(  "\nFATAL - In %s: %s.\n", a, b); fflush(stdout); terminate(); }
   #define   ERROR(a, b)   printf(  "\nERROR - In %s: %s.\n", a, b)
   #define WARNING(a, b)   printf("\nWARNING - In %s: %s.\n", a, b)
-  #define    INFO(a, b)   printf(   "\nINFO - In %s: %s.\n", a, b)
+  #define    INFO(a, b)   if (verbose) { printf("\nINFO - In %s: %s.\n", a, b); }
 
-  #define TYPE_ERROR(proc, exp) ERROR(proc, "Expecting " # exp)
+  #define TYPE_ERROR(proc, exp) FATAL(proc, "Expecting \"" exp "\"")
   #define EXPECT(test, proc, exp) { if (!(test)) TYPE_ERROR(proc, exp); }
+  #define MARK(c) { if (verbose) { putchar(c); fflush(stdout); } }
 #else
   #define   FATAL_MSG(format, ...) terminate()
   #define   ERROR_MSG(format, ...)
   #define WARNING_MSG(format, ...)
   #define    INFO_MSG(format, ...)
 
-  #define   FATAL_MSG(a, b) terminate()
-  #define   ERROR_MSG(a, b)
-  #define WARNING_MSG(a, b)
-  #define    INFO_MSG(a, b)
+  #define   FATAL(a, b) terminate()
+  #define   ERROR(a, b)
+  #define WARNING(a, b)
+  #define    INFO(a, b)
 
   #define TYPE_ERROR(proc, exp)
   #define EXPECT(test, proc, exp)
+  #define MARK(c)
 #endif
 
 #pragma pack(1)
@@ -79,5 +75,6 @@ extern void terminate();
 #define PRIVATE static
 
 bool trace;
+bool verbose;
 
 #endif

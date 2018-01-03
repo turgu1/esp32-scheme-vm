@@ -7,13 +7,13 @@ BEGIN {
   max_idx = 0
 }
 
-/^\W*BUILTIN(_UNSPEC|)/ {
+/^\W*PRIMITIVE(_UNSPEC|)/ {
 
 	match($0, /\([ \t]*(.+?)[ \t]*,[ \t]*(\w+)[ \t]*,[ \t]*(\w+)[ \t]*,[ \t]*(\w+)[ \t]*\)/, opts)
 
   idx = strtonum(opts[4])
 
-  if (match($0, "BUILTIN_UNSPEC")) {
+  if (match($0, "PRIMITIVE_UNSPEC")) {
 		pr[idx, "scheme_options"] = "#:unspecified-result"
 	}
 
@@ -31,9 +31,9 @@ BEGIN {
 
   if (idx >= 64) {
 		print "" > "/dev/stderr"
-		print "  ERROR: More than 64 (0..63) builtins are defined." > "/dev/stderr"
+		print "  ERROR: More than 64 (0..63) primitives are defined." > "/dev/stderr"
 		print "    The bytecode cannot reference more than 64 different" > "/dev/stderr"
-		print "    builtins at the moment." > "/dev/stderr"
+		print "    primitives at the moment." > "/dev/stderr"
 		print "" > "/dev/stderr"
 		exit 1
 	}

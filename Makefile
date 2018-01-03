@@ -26,7 +26,7 @@ SOURCES     := $(shell find $(SRCDIR) -type f -name *.$(SRCEXT))
 OBJECTS     := $(patsubst $(SRCDIR)/%,$(BUILDDIR)/%,$(SOURCES:.$(SRCEXT)=.$(OBJEXT)))
 
 #Defauilt Make
-all: resources $(TARGETDIR)/$(TARGET)
+all: resources $(TARGETDIR)/$(TARGET) compiler
 
 #Remake
 remake: cleaner all
@@ -67,17 +67,20 @@ $(BUILDDIR)/%.$(OBJEXT): $(SRCDIR)/%.$(SRCEXT)
 	@sed -e 's/.*://' -e 's/\\$$//' < $(BUILDDIR)/$*.$(DEPEXT).tmp | fmt -1 | sed -e 's/^ *//' -e 's/$$/:/' >> $(BUILDDIR)/$*.$(DEPEXT)
 	@rm -f $(BUILDDIR)/$*.$(DEPEXT).tmp
 
-builtin-gen = gawk -f scripts/scanner.awk -f scripts/builtin-$(1).awk .builtins.p >$(2)
+primitive-gen = gawk -f scripts/scanner.awk -f scripts/primitive-$(1).awk .primitives.p >$(2)
 
-.builtins.p: $(SOURCES)
+.primitives.p: $(SOURCES)
 	rm -f $@
 	for object in $(SOURCES); do \
-		gcc -E -DNO_BUILTIN_EXPAND $(CFLAGS) $(INC) \
+		gcc -E -DNO_PRIMITIVE_EXPAND $(CFLAGS) $(INC) \
 			$$object -o - >>$@; \
 	done
-	$(call builtin-gen,headergen,inc/gen.builtins.h)
-	$(call builtin-gen,schemegen,gen/gen.builtins.rkt)
-	$(call builtin-gen,dispatchgen,inc/gen.dispatch.h)
+	$(call primitive-gen,headergen,inc/gen.primitives.h)
+	$(call primitive-gen,schemegen,compiler/gen.primitives.rkt)
+	$(call primitive-gen,dispatchgen,inc/gen.dispatch.h)
+
+compiler:
+	raco make compiler/picobit.rkt
 
 #Non-File Targets
-.PHONY: all run remake clean cleaner resources
+.PHONY: all run remake clean cleaner resources compiler

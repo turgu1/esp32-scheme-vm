@@ -3,12 +3,12 @@
 
 #define PUBLIC extern
 
-PUBLIC void builtins_computer_tests();
-PUBLIC void builtins_control_tests();
-PUBLIC void builtins_list_tests();
-PUBLIC void builtins_numeric_tests();
-PUBLIC void builtins_util_tests();
-PUBLIC void builtins_vector_tests();
+PUBLIC void primitives_computer_tests();
+PUBLIC void primitives_control_tests();
+PUBLIC void primitives_list_tests();
+PUBLIC void primitives_numeric_tests();
+PUBLIC void primitives_util_tests();
+PUBLIC void primitives_vector_tests();
 PUBLIC void hexfile_tests();
 PUBLIC void interpreter_tests();
 PUBLIC void kb_tests();

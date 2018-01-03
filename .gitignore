@@ -1,7 +1,7 @@
 *.o
 *.d
 scheme
-.builtins.p
+.primitives.p
 compiled/
 
 .DS_Store

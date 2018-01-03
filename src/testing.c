@@ -2,13 +2,13 @@
 #include "vm-arch.h"
 #include "mm.h"
 
+#include <stdarg.h>
+
 #if TESTS
 
 #define TESTING 1
 #include "testing.h"
 #include "tests.h"
-
-#include <stdarg.h>
 
 static int failed_count;
 static int tested_count;
@@ -17,7 +17,6 @@ void EXPECT_TRUE(bool val, char * info, ...)
 {
   va_list ap;
   static char buf[200];
-
 
   tested_count++;
   putchar('.');
@@ -39,12 +38,12 @@ void conduct_tests()
   //kb_tests(); // Requires user interaction
   mm_tests();
   vm_arch_tests();
-  builtins_computer_tests();
-  builtins_control_tests();
-  builtins_list_tests();
-  builtins_numeric_tests();
-  builtins_util_tests();
-  builtins_vector_tests();
+  primitives_computer_tests();
+  primitives_control_tests();
+  primitives_list_tests();
+  primitives_numeric_tests();
+  primitives_util_tests();
+  primitives_vector_tests();
   hexfile_tests();
   interpreter_tests();
 
@@ -55,3 +54,21 @@ void conduct_tests()
 }
 
 #endif
+
+#if TRACING
+extern void show (cell_p o);
+
+void TRACE(char * format, ...)
+{
+  va_list ap;
+  if (trace) {
+    printf("  Env ptr: %d - ", env);
+    show(env);
+    putchar('\n');
+    va_start(ap, format);
+    printf("[%ld]", last_pc.c - program);
+    vprintf(format, ap);
+  }
+}
+#endif
+
