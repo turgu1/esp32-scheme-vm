@@ -15,7 +15,7 @@
 // there's some PIC18 code in there too
 // it should eventually be moved to its own architecture
 
-void show (cell_p o)
+PRIVATE void show_it (cell_p o)
 {
   cell_p car;
   cell_p cdr;
@@ -49,29 +49,36 @@ void show (cell_p o)
       printf("(");
 
 loop:
-      show(car);
+      show_it(car);
 
-      if (cdr == NIL) {
-        printf(")");
-      }
-      else if ((IN_RAM(cdr) && RAM_IS_PAIR(cdr))
-                 || (IN_ROM(cdr) && ROM_IS_PAIR(cdr))) {
-        if (IN_RAM(cdr)) {
-          car = RAM_GET_CAR(cdr);
-          cdr = RAM_GET_CDR(cdr);
+      // if (RAM_IS_MARKED(o)) {
+      //   printf(" ...");
+      // }
+      // else
+      {
+        RAM_SET_MARK(o);
+        if (cdr == NIL) {
+          printf(")");
+        }
+        else if ((IN_RAM(cdr) && RAM_IS_PAIR(cdr))
+                   || (IN_ROM(cdr) && ROM_IS_PAIR(cdr))) {
+          if (IN_RAM(cdr)) {
+            car = RAM_GET_CAR(cdr);
+            cdr = RAM_GET_CDR(cdr);
+          }
+          else {
+            car = ROM_GET_CAR(cdr);
+            cdr = ROM_GET_CDR(cdr);
+          }
+
+          printf(" ");
+          goto loop;
         }
         else {
-          car = ROM_GET_CAR(cdr);
-          cdr = ROM_GET_CDR(cdr);
+          printf(" . ");
+          show_it(cdr);
+          printf(")");
         }
-
-        printf(" ");
-        goto loop;
-      }
-      else {
-        printf(" . ");
-        show(cdr);
-        printf(")");
       }
     }
     else if ((IN_RAM(o) && RAM_IS_SYMBOL(o)) || (IN_ROM(o) && ROM_IS_SYMBOL(o))) {
@@ -115,17 +122,22 @@ loop:
       entry = RAM_GET_CLOSURE_ENTRY_POINT(o);
 
       printf("{0x%04x ", (int) entry);
-      show(env);
+      show_it(env);
       printf("}");
     }
     else {
-      FATAL("show", "received an unknown structure");
+      FATAL("show_it", "received an unknown structure");
     }
   }
 
   fflush(stdout);
 }
 
+void show (cell_p o)
+{
+  show_it(o);
+  unmark_ram();
+}
 PRIVATE void print (cell_p o)
 {
   show(o);

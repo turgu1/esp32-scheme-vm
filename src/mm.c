@@ -36,8 +36,8 @@
 
 */
 
-#define RAM_IS_PAIR(p) (ram_heap[p].type == CONS_TYPE)
-#define RAM_IS_STRING_OR_BIGNUM(p) ((ram_heap[p].type == STRING_TYPE) || (ram_heap[p].type == BIGNUM_TYPE))
+#define RAM_IS_PAIR_OR_CONTINUATION(p) ((ram_heap[p].type == CONS_TYPE) || (ram_heap[p].type == CONTINUATION_TYPE))
+#define RAM_IS_STRING_OR_CLOSURE(p) ((ram_heap[p].type == STRING_TYPE) || (ram_heap[p].type == CLOSURE_TYPE))
 
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
@@ -54,13 +54,23 @@ PRIVATE void mark(cell_p p)
       #if STATISTICS
         used_cells_count++;
       #endif
-      if (RAM_IS_PAIR(current)) {
+      if (RAM_IS_PAIR_OR_CONTINUATION(current)) {
         next = ram_heap[current].cons.car_p;
         ram_heap[current].cons.car_p = prev;
         prev = current;
         current = next;
       }
-      else if (RAM_IS_STRING_OR_BIGNUM(current)) {
+      else if (RAM_IS_STRING(current)) {
+        next = ram_heap[current].string.chars_p;
+        while (next != NIL) {
+          ram_heap[next].gc_mark = 1;
+          #if STATISTICS
+            used_cells_count++;
+          #endif
+          next = ram_heap[next].cons.cdr_p;
+        }
+      }
+      else if (RAM_IS_BIGNUM(current)) {
         next = ram_heap[current].bignum.next_p;
         while (next != NIL) {
           ram_heap[next].gc_mark = 1;
@@ -70,6 +80,12 @@ PRIVATE void mark(cell_p p)
           next = ram_heap[next].bignum.next_p;
         }
       }
+    //   else if (RAM_IS_CONTINUATION(current)) {
+    //     ram_heap[ram_heap[current].continuation.closure_p].gc_mark = 1;
+    //     #if STATISTICS
+    //       used_cells_count++;
+    //     #endif
+    //   }
     }
 
     while ((prev < ram_heap_end) && (ram_heap[prev].gc_flip == 1)) {
@@ -87,6 +103,16 @@ PRIVATE void mark(cell_p p)
     ram_heap[prev].cons.car_p = current;
     current = ram_heap[prev].cons.cdr_p;
     ram_heap[prev].cons.cdr_p = next;
+  }
+}
+
+void unmark_ram()
+{
+  cell_ptr pp = &ram_heap[ram_heap_end];
+
+  // Don't forget: p cannot be a negative number...
+  while (--pp >= ram_heap) {
+    pp->gc_mark = 0;
   }
 }
 
@@ -129,7 +155,7 @@ PRIVATE void mm_sweep()
       pp->gc_mark = 0;
       pp--;
     } while (p-- > 0); // Last loop will have p = 0
-  }	
+  }
 }
 
 PRIVATE bool check_free_list(int count)
@@ -153,6 +179,8 @@ void return_to_free_list(cell_p p)
 
 void mm_gc()
 {
+  INFO_MSG("Garbage collection Started");
+
   #if STATISTICS
     used_cells_count = 0;
   #endif
@@ -175,6 +203,8 @@ void mm_gc()
         used_cells_count + free_cells_count);
     }
   #endif
+
+  INFO_MSG("Garbage Collection Completed");
 }
 
 /**

@@ -39,6 +39,9 @@ PRIMITIVE(u8vector-ref, u8vector_ref, 2, 35)
     }
 
     reg1 = RAM_GET_VECTOR_START(reg1);
+
+    reg1 = encode_int(VECTOR_GET_BYTE(reg1, a2));
+    reg2 = NIL;
   }
   else if (IN_ROM(reg1)) {
     EXPECT(ROM_IS_VECTOR(reg1), "u8vector-ref.2", "vector");
@@ -61,8 +64,6 @@ PRIMITIVE(u8vector-ref, u8vector_ref, 2, 35)
     TYPE_ERROR("u8vector-ref.4", "vector");
   }
 
-  reg1 = encode_int(VECTOR_GET_BYTE(reg1, a2));
-  reg2 = NIL;
 }
 
 PRIMITIVE_UNSPEC(u8vector-set!, u8vector_set, 3, 36)
@@ -118,5 +119,36 @@ void primitives_vector_tests()
 {
   TESTM("primitives-vector");
 
+  TEST("Make u8 vector");
+
+    reg1 = encode_int(7);
+    primitive_make_u8vector();
+    cell_p v = reg1;
+    EXPECT_TRUE(RAM_IS_VECTOR(v), "make_u8vector doesn't return a vector");
+    EXPECT_TRUE(RAM_GET_VECTOR_LENGTH(v) == 7, "Vector length is wrong");
+
+  TEST("u8 vector length");
+
+    primitive_u8vector_length();
+    EXPECT_TRUE(RAM_GET_VECTOR_LENGTH(v) == decode_int(reg1), "Vector length not returned properly");
+
+  TEST("u8 vector predicate");
+
+    reg1 = v;
+    primitive_u8vector_p();
+    EXPECT_TRUE(reg1 == TRUE, "Vector not recognised as such");
+
+  TEST("u8 vector set! and ref");
+
+    reg1 = v;
+    reg2 = encode_int(2);
+    reg3 = encode_int(23);
+    primitive_u8vector_set();
+
+    reg1 = v;
+    reg2 = encode_int(2);
+    primitive_u8vector_ref();
+
+    EXPECT_TRUE(decode_int(reg1) == 23, "unable to set and ref a vector entry");
 }
 #endif

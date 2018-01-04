@@ -179,7 +179,7 @@
             break;
 
           case 8 :
-            TRACE("  (%s <%d>)\n", "bitwise-xor", 2);
+            TRACE("  (%s <%d>)\n", "bitwise-and", 2);
             reg2 = pop ();
             reg1 = pop ();
             primitive_bitwise_and ();
@@ -187,7 +187,7 @@
             break;
 
           case 9 :
-            TRACE("  (%s <%d>)\n", "bitwise-xor", 1);
+            TRACE("  (%s <%d>)\n", "bitwise-not", 1);
             reg1 = pop ();
             primitive_bitwise_not ();
             env = new_pair(reg1, env);
@@ -312,4 +312,3 @@
             break;
         }
         break;
-

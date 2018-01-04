@@ -412,6 +412,7 @@ typedef cell * cell_ptr;
 #define IN_RAM(p) (p >= reserved_cells_count) && (p < ram_heap_size)
 #define IN_ROM(p) (p >= ROM_START_ADDR) && (p < ROM_MAX_ADDR)
 
+#define RAM_GET_TYPE(p) ram_heap[p].type
 #define RAM_SET_TYPE(p, t) ram_heap[p].type = t
 
 #define RAM_GET_CAR(p) ram_heap[p].cons.car_p
@@ -422,6 +423,9 @@ typedef cell * cell_ptr;
 
 #define ROM_GET_CAR(p) rom_heap[ROM_IDX(p)].cons.car_p
 #define ROM_GET_CDR(p) rom_heap[ROM_IDX(p)].cons.cdr_p
+
+#define RAM_IS_MARKED(p) ram_heap[p].gc_mark == 1
+#define RAM_SET_MARK(p) ram_heap[p].gc_mark = 1
 
 // Fixnum
 

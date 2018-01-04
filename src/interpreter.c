@@ -120,7 +120,7 @@ void save_cont()
 
   This method complete the preparation of the argument list for the
   procedure to be called. The arguments are put in front of the
-  content of reg1 as list. See the prepare_arguments for the preparation
+  content of reg1 as a list. See the prepare_arguments for the preparation
   to be done bedore calling this function.
 
  */
@@ -129,13 +129,20 @@ void build_environment(uint8_t nbr_args)
 {
   // The loop is optimized to reuse the stack cons cells instead
   // of freeing and reallocating a cons. Save some garbage collecting job...
+
   while (nbr_args--) {
     reg2 = tos();
     RAM_SET_CDR(reg2, reg1);
     reg1 = reg2;
     //reg1 = new_pair(pop(), reg1)
   }
-  reg2 = NIL;
+
+  // while (nbr_args--) {
+  //   reg3 = pop();
+  //   reg1 = new_pair(reg3, reg1);
+  // }
+
+  reg3 = NIL;
 }
 
 void interpreter()
@@ -307,10 +314,14 @@ void interpreter()
           case CALLR :
             entry = NEXT_BYTE;
             entry = (pc.c - program) + entry - 128;
+
             TRACE("  CALLR %d\n", entry);
+
             reg1 = NIL;
+
             build_environment(*(program + entry++));
             save_cont();
+
             env = reg1;
             pc.c = program + entry;
             reg1 = NIL;
@@ -319,9 +330,13 @@ void interpreter()
           case JUMPR :
             entry = NEXT_BYTE;
             entry = (pc.c - program) + entry - 128;
+
             TRACE("  JUMPR %d\n", entry);
+
             reg1 = NIL;
+
             build_environment(*(program + entry++));
+
             env = reg1;
             pc.c = program + entry;
             reg1 = NIL;

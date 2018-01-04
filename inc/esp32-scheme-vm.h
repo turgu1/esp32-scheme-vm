@@ -30,7 +30,7 @@ extern void terminate();
 #define STATS     0
 #define DEBUGGING 1
 #define TRACING   1
-#define TESTS     0
+#define TESTS     1
 
 #define STATISTICS (STATS || DEBUGGING)
 

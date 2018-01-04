@@ -160,7 +160,7 @@ PRIMITIVE(bitwise-xor, bitwise_xor, 2, 23)
   reg2 = NIL;
 }
 
-PRIMITIVE(bitwise-xor, bitwise_and, 2, 24)
+PRIMITIVE(bitwise-and, bitwise_and, 2, 24)
 {
 #ifdef CONFIG_BIGNUM_LONG
   reg1 = bitwise_xor(reg1, reg2);
@@ -171,7 +171,7 @@ PRIMITIVE(bitwise-xor, bitwise_and, 2, 24)
   reg2 = NIL;
 }
 
-PRIMITIVE(bitwise-xor, bitwise_not, 1, 25)
+PRIMITIVE(bitwise-not, bitwise_not, 1, 25)
 {
 #ifdef CONFIG_BIGNUM_LONG
   reg1 = bitwise_not(reg1);
