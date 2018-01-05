@@ -117,24 +117,15 @@ int32_t decode_int(cell_p p)
     }
   }
   else if (IN_RAM(p)) {
-    #if DEBUGGING
-      if (!RAM_IS_FIXNUM(p)) {
-        printf("--> Not a fixnum at %d type: %d\n", p, RAM_GET_TYPE(p));
-      }
-    #endif
-    
     EXPECT(RAM_IS_FIXNUM(p), "decode_int.0", "fixnum");
-
     val = RAM_GET_FIXNUM_VALUE(p);
   }
   else if (IN_ROM(p)) {
     EXPECT(ROM_IS_FIXNUM(p), "decode_int.1", "fixnum");
-
     val = ROM_GET_FIXNUM_VALUE(p);
   }
   else {
     TYPE_ERROR("decode_int.2", "fixnum");
-
     val = 0;
   }
 

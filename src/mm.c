@@ -36,8 +36,87 @@
 
 */
 
-#define RAM_IS_PAIR_OR_CONTINUATION(p) ((ram_heap[p].type == CONS_TYPE) || (ram_heap[p].type == CONTINUATION_TYPE))
-#define RAM_IS_STRING_OR_CLOSURE(p) ((ram_heap[p].type == STRING_TYPE) || (ram_heap[p].type == CLOSURE_TYPE))
+// void mark (cell_p temp)
+// {
+// 	/* mark phase */
+//
+// 	cell_p stack;
+// 	cell_p visit;
+//
+// 	if (IN_RAM(temp)) {
+// 		visit = NIL;
+//
+// push:
+// 		stack = visit;
+// 		visit = temp;
+//
+// 		if ((HAS_1_OBJECT_FIELD (visit) && ram_get_gc_tag0 (visit))
+// 		    || (HAS_2_OBJECT_FIELDS (visit)
+// 		        && (ram_get_gc_tags (visit) != GC_TAG_UNMARKED))) {
+// 		} else {
+// 			if (HAS_2_OBJECT_FIELDS(visit)) { // pairs and continuations
+//
+// 				temp = ram_get_cdr (visit);
+//
+// 				if (IN_RAM(temp)) {
+// 					ram_set_gc_tags (visit, GC_TAG_1_LEFT);
+// 					ram_set_cdr (visit, stack);
+// 					goto push;
+// 				}
+//
+// 				goto visit_field1;
+// 			}
+//
+// 			if (HAS_1_OBJECT_FIELD(visit)) {
+//
+// visit_field1:
+// 				temp = ram_get_car (visit);
+//
+// 				if (IN_RAM(temp)) {
+// 					ram_set_gc_tag0 (visit, GC_TAG_0_LEFT);
+// 					ram_set_car (visit, stack);
+//
+// 					goto push;
+// 				}
+// 			} else {
+// 			}
+//
+// 			ram_set_gc_tag0 (visit, GC_TAG_0_LEFT);
+// 		}
+//
+// pop:
+// 		if (stack != OBJ_FALSE) {
+// 			if (HAS_2_OBJECT_FIELDS(stack) && ram_get_gc_tag1 (stack)) {
+// 				temp = ram_get_cdr (stack);  /* pop through cdr */
+// 				ram_set_cdr (stack, visit);
+// 				visit = stack;
+// 				stack = temp;
+//
+// 				ram_set_gc_tag1(visit, GC_TAG_UNMARKED);
+// 				// we unset the "1-left" bit
+//
+// 				goto visit_field1;
+// 			}
+//
+// 			temp = ram_get_car (stack);  /* pop through car */
+// 			ram_set_car (stack, visit);
+// 			visit = stack;
+// 			stack = temp;
+//
+// 			goto pop;
+// 		}
+// 	}
+// }
+
+#define RAM_HAS_RIGHT_LINK(p) \
+  ((ram_heap[p].type == CONS_TYPE        ) || \
+   (ram_heap[p].type == CONTINUATION_TYPE))
+#define RAM_HAS_LEFT_LINK(p) \
+  ((ram_heap[p].type == CONS_TYPE        ) || \
+   (ram_heap[p].type == CONTINUATION_TYPE) || \
+   (ram_heap[p].type == STRING_TYPE      ) || \
+   (ram_heap[p].type == BIGNUM_TYPE      ) || \
+   (ram_heap[p].type == CLOSURE_TYPE     ))
 
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
@@ -54,32 +133,34 @@ PRIVATE void mark(cell_p p)
       #if STATISTICS
         used_cells_count++;
       #endif
-      if (RAM_IS_PAIR_OR_CONTINUATION(current)) {
+      if (RAM_HAS_LEFT_LINK(current)) {
         next = ram_heap[current].cons.car_p;
         ram_heap[current].cons.car_p = prev;
         prev = current;
         current = next;
       }
-      else if (RAM_IS_STRING(current)) {
-        next = ram_heap[current].string.chars_p;
-        while (next != NIL) {
-          ram_heap[next].gc_mark = 1;
-          #if STATISTICS
-            used_cells_count++;
-          #endif
-          next = ram_heap[next].cons.cdr_p;
-        }
-      }
-      else if (RAM_IS_BIGNUM(current)) {
-        next = ram_heap[current].bignum.next_p;
-        while (next != NIL) {
-          ram_heap[next].gc_mark = 1;
-          #if STATISTICS
-            used_cells_count++;
-          #endif
-          next = ram_heap[next].bignum.next_p;
-        }
-      }
+      // else if (RAM_IS_STRING(current)) {
+      //   next = ram_heap[current].string.chars_p;
+      //   while (next != NIL) {
+      //     ram_heap[next].gc_mark = 1;
+      //     #if STATISTICS
+      //       used_cells_count++;
+      //     #endif
+      //     EXPECT(RAM_IS_PAIR(next), "mark", "pair");
+      //     next = ram_heap[next].cons.cdr_p;
+      //   }
+      // }
+      // else if (RAM_IS_BIGNUM(current)) {
+      //   next = ram_heap[current].bignum.next_p;
+      //   while (next != NIL) {
+      //     ram_heap[next].gc_mark = 1;
+      //     #if STATISTICS
+      //       used_cells_count++;
+      //     #endif
+      //     EXPECT(RAM_IS_BIGNUM(next), "mark.1", "bignum");
+      //     next = ram_heap[next].bignum.next_p;
+      //   }
+      // }
     //   else if (RAM_IS_CONTINUATION(current)) {
     //     ram_heap[ram_heap[current].continuation.closure_p].gc_mark = 1;
     //     #if STATISTICS
@@ -98,9 +179,10 @@ PRIVATE void mark(cell_p p)
 
     if (prev == NIL) return;
 
-    ram_heap[prev].gc_flip = 1;
     next = ram_heap[prev].cons.car_p;
     ram_heap[prev].cons.car_p = current;
+
+    ram_heap[prev].gc_flip = 1;
     current = ram_heap[prev].cons.cdr_p;
     ram_heap[prev].cons.cdr_p = next;
   }
