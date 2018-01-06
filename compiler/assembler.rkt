@@ -291,7 +291,7 @@
               (let ([hi (to_rom_index (encode-constant d3 constants))]) ;; BIGNUM
                 (asm-16 obj)   ; bits 0-15
                 (asm-16 hi)    ; pointer to hi
-                (asm-8 #x24)
+                (asm-8 #x14)
                 ;-(printf "obj: ~v hi: ~v~n" obj hi)
               )
             )] ; FIXNUM / BIGNUM CODE
@@ -313,7 +313,7 @@
             (let ([obj-enc (to_rom_index (encode-constant d3 constants))])
               (asm-16 #xFFFF)
               (asm-16 obj-enc)
-              (asm-8 #x28))] ; STRING CODE
+              (asm-8 #x18))] ; STRING CODE
            [(vector? obj) ; ordinary vectors are stored as lists
             ;-(display " vector: ")
             (let ([obj-car (to_rom_index (encode-constant (car d3) constants))]

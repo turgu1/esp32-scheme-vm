@@ -52,7 +52,7 @@ extern void terminate();
   #define    INFO(a, b)   if (verbose) { printf("\nINFO - In %s: %s.\n", a, b); }
 
   #define TYPE_ERROR(proc, exp) FATAL(proc, "Expecting \"" exp "\"")
-  #define EXPECT(test, proc, exp) { if (!(test)) TYPE_ERROR(proc, exp); }
+  #define EXPECT(test, proc, exp) { if (!(test)) { printf("\nAt [%ld]: ", last_pc.c - program); TYPE_ERROR(proc, exp); } }
   #define MARK(c) { if (verbose) { putchar(c); fflush(stdout); } }
 #else
   #define   FATAL_MSG(format, ...) terminate()

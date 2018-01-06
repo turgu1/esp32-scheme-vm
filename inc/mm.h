@@ -65,5 +65,10 @@ PUBLIC cell_p mm_new_vector_cell(uint16_t length, cell_p from);
 PUBLIC void   return_to_free_list(cell_p p);
 PUBLIC void   unmark_ram();
 
+#if DEBUGGING
+  PUBLIC void unmark_ram();
+  PUBLIC bool is_free(cell_p p);
+#endif
+
 #undef PUBLIC
 #endif

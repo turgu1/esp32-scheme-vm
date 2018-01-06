@@ -12,10 +12,12 @@ void vm_arch_init()
 
 cell_p pop()
 {
-  // all the cons linking stack elements together are from the RAM Heap.
-  if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
-    FATAL("pop.0", "HEAP BROKEN!!!");
-  }
+  #if DEBUGGING
+    // all the cons linking stack elements together are from the RAM Heap.
+    if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
+      FATAL("pop.0", "HEAP BROKEN!!!");
+    }
+  #endif
 
   if (env == NIL) {
     #if DEBUGGING
@@ -27,9 +29,17 @@ cell_p pop()
 
   cell_p p = RAM_GET_CAR(env);
 
-  cell_p f = env; // freed cell to be returned to the free cell list
+  cell_p f = env; // freed cell to be returned to the free list
   env = RAM_GET_CDR(env);
 
+  #if 0 //DEBUGGING
+    if (is_free(f) || (f >= ram_heap_size)) {
+      FATAL("pop.2", "GC Broken");
+    }
+    if ((p < ram_heap_size) && is_free(p)) {
+      FATAL("pop.3", "GC Broken");
+    }
+  #endif
   return_to_free_list(f);
 
   return p;
@@ -39,6 +49,8 @@ cell_p new_closure(cell_p env, code_p code)
 {
   cell_p p = mm_new_ram_cell();
 
+  EXPECT(RAM_IS_PAIR(env) || env == NIL, "new_closure.0", "pair");
+  
   ram_heap[p].type = CLOSURE_TYPE;
   ram_heap[p].closure.environment_p = env;
   ram_heap[p].closure.entry_point_p  = code;
@@ -60,6 +72,9 @@ cell_p new_pair(cell_p car, cell_p cdr)
 cell_p new_cont(cell_p parent, cell_p closure)
 {
   cell_p p = mm_new_ram_cell();
+
+  EXPECT(RAM_IS_CLOSURE(closure), "new_cont.0", "closure");
+  EXPECT(RAM_IS_CONTINUATION(parent) || parent == NIL, "new_cont.1", "continuation");
 
   ram_heap[p].type = CONTINUATION_TYPE;
   ram_heap[p].continuation.closure_p = closure;
@@ -91,11 +106,17 @@ cell_p new_fixnum(int32_t value)
 
 cell_p new_vector(uint16_t length)
 {
-  cell_p p = mm_new_ram_cell();
+  // As mm_new_vector_cell may call garbage collection, it is required
+  // to use reg5 to save the allocated cell during gc().
 
-  ram_heap[p].type           = VECTOR_TYPE;
-  ram_heap[p].vector.start_p = mm_new_vector_cell(length, p);
-  ram_heap[p].vector.length  = length;
+  reg5 = mm_new_ram_cell();
+
+  ram_heap[reg5].type           = VECTOR_TYPE;
+  ram_heap[reg5].vector.start_p = mm_new_vector_cell(length, reg5);
+  ram_heap[reg5].vector.length  = length;
+
+  cell_p p = reg5;
+  reg5 = NIL;
 
   return p;
 }

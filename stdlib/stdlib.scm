@@ -21,34 +21,37 @@
         (#%sleep-aux wake-up)
         #f)))
 
-(define display
-  (lambda (x)
-    (if (string? x)
-        (for-each putchar (string->list x))
-        (write x))))
+(define (display x)
+        (if (string? x)
+            (for-each putchar (string->list x))
+            (write x)
+            )
+        )
 
 (define (newline) (#%putchar #\newline 3))
 
-(define (displayln x) (display x) (newline))
+(define (displayln x)
+        (display x)
+        (newline))
 
-(define write
-  (lambda (x)
-    (cond ((string? x)
-	   (begin (#%putchar #\" 3)
-		  (display x)
-		  (#%putchar #\" 3)))
-	  ((number? x)
-	   (display (number->string x)))
-	  ((pair? x)
-	   (begin (#%putchar #\( 3)
-                  (write (car x))
-                  (#%write-list (cdr x))))
-	  ((symbol? x)
-	   (display "#<symbol>"))
-	  ((boolean? x)
-	   (display (if x "#t" "#f")))
-	  (else
-	   (display "#<object>")))))
+(define (write x)
+        (cond ((string? x)
+	             (begin (#%putchar #\" 3)
+		                  (display x)
+		                  (#%putchar #\" 3)))
+	            ((number? x)
+	             (display (number->string x)))
+	            ((pair? x)
+	             (begin (#%putchar #\( 3)
+                      (write (car x))
+                      (#%write-list (cdr x))))
+	            ((symbol? x)
+	             (display "#<symbol>"))
+	            ((boolean? x)
+	             (display (if x "#t" "#f")))
+	            (else
+	             (display "#<object>"))))
+
 ;; TODO have vectors and co ?
 
 (define #%write-list

@@ -62,13 +62,13 @@ void TRACE(char * format, ...)
 {
   va_list ap;
   if (trace) {
-    printf("  Env ptr: %d - ", env);
-    show(env);
-    putchar('\n');
+    //printf("  Env ptr: %d - ", env);
+    //show(env);
+    //putchar('\n');
     va_start(ap, format);
     printf("[%ld]", last_pc.c - program);
     vprintf(format, ap);
+    fflush(stdout);
   }
 }
 #endif
-

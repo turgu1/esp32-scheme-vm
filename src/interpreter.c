@@ -52,7 +52,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
 {
   // Retrieve closure from stack, keep the cons for later
   reg2 = tos();
-  reg1 = RAM_GET_CAR(reg2);
+  reg1 = RAM_GET_CAR(reg2); // reg1 is the closure
 
   if (IN_RAM(reg1)) {
     if (RAM_IS_CLOSURE(reg1)) {
@@ -111,7 +111,7 @@ uint8_t prepare_arguments(int8_t nbr_args)
   return nbr_args;
 }
 
-void save_cont()
+inline void save_cont()
 {
   cont = new_cont(cont, new_closure(env, pc.c - program));
 }
@@ -142,14 +142,25 @@ void build_environment(uint8_t nbr_args)
   //   reg1 = new_pair(reg3, reg1);
   // }
 
-  reg3 = NIL;
+  reg2 = NIL;
 }
 
 void interpreter()
 {
+  // r1 is a temporaty variable used by the interpreter to
+  // contain non-managed values (i.e. values that can't be manipulated
+  // with the garbage collection mechanism, as reg1 .. reg4)
+
+  static uint16_t r1;
+
   pc.c = program + (program[2] * 5) + 4;
 
   for (;;) {
+    #if DEBUGGING
+      if (pc.c >= (program + max_addr)) {
+        FATAL_MSG("Interpreter reached an non-program location: %d\n", (int) (pc.c - program));
+      }
+    #endif
     #if TRACING
       last_pc = pc;
     #endif
@@ -158,49 +169,47 @@ void interpreter()
     switch (instr & 0xF0) {
       case LDCS1 :
       case LDCS2 :
-        reg1 = instr & 0x1F;
-        TRACE("  LDCS %d\n", reg1);
-        if (reg1 < 3) {
-          env = new_pair(reg1 + 0xFFFD, env);
+        r1 = instr & 0x1F;
+        TRACE("  LDCS %d\n", r1);
+        if (r1 < 3) {
+          env = new_pair(r1 + 0xFFFD, env);
         }
         else {
-          env = new_pair((reg1 - 3) + 0xFE00, env);
+          env = new_pair((r1 - 3) + 0xFE00, env);
         }
-        reg1 = NIL;
         break;
 
       case LDSTK1 :
       case LDSTK2 :
-        reg2 = instr & 0x1F;
-        TRACE("  LDSTK %d\n", reg2);
+        r1 = instr & 0x1F;
+        TRACE("  LDSTK %d\n", r1);
 
         reg1 = env;
-        while (reg2-- && (reg1 != NIL)) {
+        while (r1-- && (reg1 != NIL)) {
           reg1 = RAM_GET_CDR(reg1);
         }
         env = new_pair(reg1 == NIL ? NIL : RAM_GET_CAR(reg1), env);
-        reg1 = reg2 = NIL;
+        reg1 = NIL;
         break;
 
       case LDS :
-        reg2 = instr & 0x0F;
-        TRACE("  LDS %d\n", reg2);
-        reg1 = GLOBAL_GET(reg2);
+        r1 = instr & 0x0F;
+        TRACE("  LDS %d\n", r1);
+        reg1 = GLOBAL_GET(r1);
         env = new_pair(reg1, env);
-        reg1 = reg2 = NIL;
+        reg1 = NIL;
         break;
 
       case STS :
-        reg2 = instr & 0x0F;
-        TRACE("  STS %d\n", reg2);
-        GLOBAL_SET(reg2, pop());
-        reg2 = NIL;
+        r1 = instr & 0x0F;
+        TRACE("  STS %d\n", r1);
+        GLOBAL_SET(r1, pop());
         break;
 
       case CALLC :  // Call with closure on TOS
-        reg2 = instr & 0x0F;
-        TRACE("  CALLC %d\n", reg2);
-        build_environment(prepare_arguments(reg2));
+        r1 = instr & 0x0F;
+        TRACE("  CALLC %d\n", r1);
+        build_environment(prepare_arguments(r1));
         save_cont();
 
         env = reg1;
@@ -209,9 +218,9 @@ void interpreter()
         break;
 
       case JUMPC :
-        reg2 = instr & 0x0F;
-        TRACE("  JUMPC %d\n", reg2);
-        build_environment(prepare_arguments(reg2));
+        r1 = instr & 0x0F;
+        TRACE("  JUMPC %d\n", r1);
+        build_environment(prepare_arguments(r1));
 
         env = reg1;
         pc.c = program + entry;
@@ -219,6 +228,7 @@ void interpreter()
         break;
 
       case JUMPS :
+        printf("YOYOYOYO!!!\n");
         entry = (pc.c - program) + (instr & 0x0F);
         TRACE("  JUMPS %d\n", entry);
 
@@ -239,18 +249,17 @@ void interpreter()
         break;
 
       case LDC :
-        reg1 = ((instr & 0x0F) << 8) + NEXT_BYTE;
-        TRACE("  LDC %d\n", reg1);
-        if (reg1 < 3) {
-          env = new_pair(reg1 += 0xFFFD, env);
+        r1 = ((instr & 0x0F) << 8) + NEXT_BYTE;
+        TRACE("  LDC %d\n", r1);
+        if (r1 < 3) {
+          env = new_pair(r1 += 0xFFFD, env);
         }
-        else if (reg1 < 260) {
-          env = new_pair((reg1 - 3) + 0xFE00, env);
+        else if (r1 < 260) {
+          env = new_pair((r1 - 3) + 0xFE00, env);
         }
         else {
-          env = new_pair((reg1 - 260) + 0xC000, env);
+          env = new_pair((r1 - 260) + 0xC000, env);
         }
-        reg1 = NIL;
         break;
 
       case CALL: //  Call top-level procedure
@@ -375,17 +384,17 @@ void interpreter()
             break;
 
           case LD  :
-            reg2 = NEXT_BYTE;
-            TRACE("  LD %d\n", reg2);
-            reg1 = GLOBAL_GET(reg2);
+            r1 = NEXT_BYTE;
+            TRACE("  LD %d\n", r1);
+            reg1 = GLOBAL_GET(r1);
             env = new_pair(reg1, env);
-            reg1 = reg2 = NIL;
+            reg1 = NIL;
             break;
 
           case ST :
-            reg2 = NEXT_BYTE;
-            TRACE("  ST %d\n", reg2);
-            GLOBAL_SET(reg2, pop());
+            r1 = NEXT_BYTE;
+            TRACE("  ST %d\n", r1);
+            GLOBAL_SET(r1, pop());
             break;
         }
         break;

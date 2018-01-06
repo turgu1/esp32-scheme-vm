@@ -83,13 +83,13 @@ PRIMITIVE_UNSPEC(u8vector-set!, u8vector_set, 3, 36)
       ERROR("u8vector-set!.2", "vector index invalid");
     }
 
-    reg1 = RAM_GET_VECTOR_START(reg1);
+    a1 = RAM_GET_VECTOR_START(reg1);
   }
   else {
     TYPE_ERROR("u8vector-set!.3", "vector");
   }
 
-  VECTOR_SET_BYTE(reg1, a2, a3);
+  VECTOR_SET_BYTE(a1, a2, a3);
 
   reg1 = reg2 = reg3 = NIL;
 }
@@ -109,7 +109,7 @@ PRIMITIVE(u8vector-length, u8vector_length, 1, 37)
   else {
     TYPE_ERROR("u8vector-length.2", "vector");
 
-    reg1 = 0;
+    reg1 = ZERO;
   }
 }
 

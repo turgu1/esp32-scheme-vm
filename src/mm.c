@@ -5,6 +5,10 @@
 #define MM
 #include "mm.h"
 
+#if DEBUGGING
+uint16_t free_allocated_count;
+#endif
+
 /*
   // assume all mark bits and all flag bits are 0
   procedure mark(R):
@@ -36,6 +40,11 @@
 
 */
 
+#define HAS_NO_RIGHT_LINK(p) ((ram_heap[p].bits & 0x30) != 0)
+#define HAS_RIGHT_LINK(p)    ((ram_heap[p].bits & 0x30) == 0)
+#define HAS_LEFT_LINK(p)     ((ram_heap[p].bits & 0x20) == 0)
+
+#if 0
 #define HAS_RIGHT_LINK(p) \
   ((ram_heap[p].type == CONS_TYPE        ) || \
    (ram_heap[p].type == CONTINUATION_TYPE))
@@ -45,19 +54,20 @@
    (ram_heap[p].type == STRING_TYPE      ) || \
    (ram_heap[p].type == BIGNUM_TYPE      ) || \
    (ram_heap[p].type == CLOSURE_TYPE     ))
+#endif
 
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
 
-PRIVATE void look(char m, cell_p p, cell_p c, cell_p n)
-{
-  return;
-  printf("%c:%d(%d,%d) %d(%d,%d) %d(%d,%d)\n",
-    m,
-    p, RAM_GET_CAR(p), RAM_GET_CDR(p),
-    c, RAM_GET_CAR(c), RAM_GET_CDR(c),
-    n, RAM_GET_CAR(n), RAM_GET_CDR(n));
-}
+// PRIVATE void look(char m, cell_p p, cell_p c, cell_p n)
+// {
+//   return;
+//   printf("%c:%d(%d,%d) %d(%d,%d) %d(%d,%d)\n",
+//     m,
+//     p, RAM_GET_CAR(p), RAM_GET_CDR(p),
+//     c, RAM_GET_CAR(c), RAM_GET_CDR(c),
+//     n, RAM_GET_CAR(n), RAM_GET_CDR(n));
+// }
 
 PRIVATE void mark(cell_p p)
 {
@@ -65,7 +75,6 @@ PRIVATE void mark(cell_p p)
   cell_p prev    = NIL;
   cell_p next;
 
-  //printf("i:%d(%d,%d)\n", current, RAM_GET_CAR(current), RAM_GET_CDR(current));
   for (;;) {
     while ((current < ram_heap_end) && (ram_heap[current].gc_mark == 0)) {
       ram_heap[current].gc_mark = 1;
@@ -74,12 +83,10 @@ PRIVATE void mark(cell_p p)
       #endif
       if (HAS_LEFT_LINK(current)) {
         next = ram_heap[current].cons.car_p;
-        if (prev == current) printf("YEARK1!!!!\n");
         ram_heap[current].cons.car_p = prev;
         prev = current;
         current = next;
       }
-      look('a', prev, current, next);
     }
 
     // Here, current is completed. We go up until we find a node
@@ -88,84 +95,58 @@ PRIVATE void mark(cell_p p)
     while ((prev < ram_heap_end) && (ram_heap[prev].gc_flip == 1)) {
       ram_heap[prev].gc_flip = 0;
       next = ram_heap[prev].cons.cdr_p; // next is the upper node
-      if (prev == current) printf("YEARK2!!!!\n");
       ram_heap[prev].cons.cdr_p = current; // re-establish the link down
       current = prev;
       prev    = next;
-      look('b', prev, current, next);
     }
 
     if (prev >= ram_heap_end) break;
 
     if ((prev < ram_heap_end) && HAS_RIGHT_LINK(prev)) {
       next = ram_heap[prev].cons.car_p;
-      if (prev == current) printf("YEARK3!!!!\n");
       ram_heap[prev].cons.car_p = current;
-      look('c', prev, current, next);
-
-      if (prev >= ram_heap_end) break;
-
       ram_heap[prev].gc_flip = 1;
       current = ram_heap[prev].cons.cdr_p;
-      if (prev == next) printf("YEARK4!!!!\n");
       ram_heap[prev].cons.cdr_p = next;
-      look('e', prev, current, next);
     }
     else {
-      while ((prev < ram_heap_end) && !HAS_RIGHT_LINK(prev)) {
+      // We go up util a node with a right link is detected
+      while ((prev < ram_heap_end) && HAS_NO_RIGHT_LINK(prev)) {
         next = ram_heap[prev].cons.car_p;
-        if (prev == current) printf("YEARK5!!!!\n");
         ram_heap[prev].cons.car_p = current;
         current = prev;
         prev = next;
-        look('d', prev, current, next);
       }
     }
   }
 }
 
-// else if (RAM_IS_STRING(current)) {
-//   next = ram_heap[current].string.chars_p;
-//   while (next != NIL) {
-//     ram_heap[next].gc_mark = 1;
-//     #if STATISTICS
-//       used_cells_count++;
-//     #endif
-//     EXPECT(RAM_IS_PAIR(next), "mark", "pair");
-//     next = ram_heap[next].cons.cdr_p;
-//   }
-// }
-// else if (RAM_IS_BIGNUM(current)) {
-//   next = ram_heap[current].bignum.next_p;
-//   while (next != NIL) {
-//     ram_heap[next].gc_mark = 1;
-//     #if STATISTICS
-//       used_cells_count++;
-//     #endif
-//     EXPECT(RAM_IS_BIGNUM(next), "mark.1", "bignum");
-//     next = ram_heap[next].bignum.next_p;
-//   }
-// }
-//   else if (RAM_IS_CONTINUATION(current)) {
-//     ram_heap[ram_heap[current].continuation.closure_p].gc_mark = 1;
-//     #if STATISTICS
-//       used_cells_count++;
-//     #endif
-//   }
+#if DEBUGGING
+  void unmark_ram()
+  {
+    cell_ptr pp = &ram_heap[ram_heap_end];
 
-void unmark_ram()
-{
-  cell_ptr pp = &ram_heap[ram_heap_end];
-
-  // Don't forget: p cannot be a negative number...
-  while (--pp >= ram_heap) {
-    pp->gc_mark = 0;
+    // Don't forget: p cannot be a negative number...
+    while (--pp >= ram_heap) {
+      pp->gc_mark = 0;
+    }
   }
-}
+
+  bool is_free(cell_p p)
+  {
+    cell_p f = free_cells;
+    while (f != NIL) {
+      if (f == p) return true;
+      f = RAM_GET_CDR(f);
+    }
+    return false;
+  }
+#endif
 
 PRIVATE void mm_sweep()
 {
   free_cells = NIL;
+  free_allocated_count = 0;
 
   #if STATISTICS
     free_cells_count = 0;
@@ -238,6 +219,7 @@ void mm_gc()
   mark(reg2);
   mark(reg3);
   mark(reg4);
+  mark(reg5);
   mark(cont);
   mark(env);
 
@@ -317,6 +299,8 @@ cell_p mm_new_vector_cell(uint16_t length, cell_p from)
 
   if ((vector_heap_size - vector_free_cells) < length) {
 
+    INFO_MSG("Vector Space compaction\n");
+
     mm_gc ();
     mm_compact_vector_space();
 
@@ -343,6 +327,7 @@ cell_p mm_new_vector_cell(uint16_t length, cell_p from)
 cell_p mm_new_ram_cell()
 {
   if (free_cells == NIL) {
+    INFO_MSG("Free Cells Allocated since last GC: %d\n", free_allocated_count);
     mm_gc();
     if (free_cells == NIL) {
       FATAL("mm_gc", "MEMORY EXHAUSTED!!");
@@ -351,6 +336,9 @@ cell_p mm_new_ram_cell()
 
   cell_p p = free_cells;
   free_cells = RAM_GET_CDR(free_cells);
+  #if DEBUGGING
+    free_allocated_count++;
+  #endif
 
   return p;
 }
@@ -361,6 +349,7 @@ bool mm_init(uint8_t * program)
   reg2 =
   reg3 =
   reg4 =
+  reg5 =
   cont =
   env  = NIL;
 

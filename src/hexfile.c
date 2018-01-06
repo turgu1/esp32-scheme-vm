@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include "esp32-scheme-vm.h"
+#include "vm-arch.h"
+
 #include "testing.h"
 
 #define HEXFILE 1
@@ -44,7 +46,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   char line[200];
 
   uint8_t  len;
-  uint16_t addr, max_addr;
+  uint16_t addr;
   uint8_t  type;
   char   * ptr;
   bool     completed;

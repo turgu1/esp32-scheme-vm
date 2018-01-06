@@ -22,7 +22,7 @@
 /** Cells Definitions.
 
   Every cell is 40 bits long (5 bytes). To get proper memory compaction, the
-  following option must be user for gcc:
+  following option must be used for gcc:
 
      -fpack-struct=1
 
@@ -39,6 +39,10 @@
   - The 4 following bits are the type of a cell
   - The 2 following bits are the GC bits
   - The rest of the cell depends of the type of cell
+
+  Types 0 .. 7 are reserved for cell type having car pointing at other
+  cells. Types 0 .. 3 are reserved for cells having cdr pointing at other
+  cells. These are to optimize mm_mask() of the gc procedure.
 
   We define the following cells:
 
@@ -61,16 +65,9 @@
    closure
 
       +----+------+----+---------------+----------------+
-      | 00 | 0010 | GC |  ENVIRONMENT  |    CODE PTR    |
+      | 00 | 0100 | GC |  ENVIRONMENT  |    CODE PTR    |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
-
-   fixnum
-
-      +----+------+----+--------------------------------+
-      | 00 | 1000 | GC |             VALUE              |
-      +----+------+----+--------------------------------+
-         2     4     2                 32
 
    bignum
 
@@ -78,7 +75,7 @@
       significant portion is first.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1001 | GC |     NEXT      |    NUM PART    |
+      | 00 | 0101 | GC |     NEXT      |    NUM PART    |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
@@ -88,9 +85,16 @@
       A zero length string will have NIL into chars ptr.
 
       +----+------+----+---------------+----------------+
-      | 00 | 1010 | GC |  CHARS LIST   |      NIL       |
+      | 00 | 0110 | GC |  CHARS LIST   |      NIL       |
       +----+------+----+---------------+----------------+
          2     4     2        16               16
+
+   fixnum
+
+      +----+------+----+--------------------------------+
+      | 00 | 1000 | GC |             VALUE              |
+      +----+------+----+--------------------------------+
+         2     4     2                 32
 
   cstring
 
@@ -141,15 +145,14 @@
 
 #define         CONS_TYPE   0
 #define CONTINUATION_TYPE   1
-#define      CLOSURE_TYPE   2
+#define      CLOSURE_TYPE   4
+#define       BIGNUM_TYPE   5
+#define       STRING_TYPE   6
+
 #define       FIXNUM_TYPE   8
-#define       BIGNUM_TYPE   9
-#define       STRING_TYPE  10
 #define      CSTRING_TYPE  11
 #define       VECTOR_TYPE  12
 #define       SYMBOL_TYPE  13
-
-#define         ATOM_MASK   8
 
 // Easy enough: all pointer elements in cells are 16 bit long. So we define here
 // the various pointer types as uint16...
@@ -278,6 +281,7 @@ typedef cell * cell_ptr;
 #define FALSE ((cell_p) 0xFFFD)
 #define TRUE  ((cell_p) 0xFFFE)
 #define NIL   ((cell_p) 0xFFFF)
+#define ZERO  ((cell_p) 0xFE01)
 
 /** Instructions.
 
@@ -488,9 +492,10 @@ typedef cell * cell_ptr;
 
  */
 
-PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4;
+PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4, reg5;
 PUBLIC code_p entry;
 PUBLIC uint8_t * program;
+PUBLIC uint16_t max_addr;
 PUBLIC int32_t a1, a2, a3;
 
 PUBLIC union {

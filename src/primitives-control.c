@@ -65,6 +65,9 @@ PRIMITIVE(return-to-cont, return_to_cont, 2, 5)
   reg1 = reg2;
 
   reg2  = RAM_GET_CONT_CLOSURE(cont);
+
+  EXPECT(RAM_IS_CLOSURE(reg2), "return-to-cont.1", "closure");
+
   entry = RAM_GET_CLOSURE_ENTRY_POINT(reg2);
   env   = RAM_GET_CLOSURE_ENV(reg2);
   cont  = RAM_GET_CONT_PARENT(cont);
