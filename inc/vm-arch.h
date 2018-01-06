@@ -171,8 +171,8 @@ typedef struct {
 } continuation_part;
 
 typedef struct {
-  cell_p environment_p;
   code_p entry_point_p;
+  cell_p environment_p;
 } closure_part;
 
 typedef struct {
@@ -180,8 +180,8 @@ typedef struct {
 } fixnum_part;
 
 typedef struct {
-  cell_p next_p;
   int16_t num_part;
+  cell_p next_p;
 } bignum_part;
 
 typedef struct {

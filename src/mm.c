@@ -36,82 +36,10 @@
 
 */
 
-// void mark (cell_p temp)
-// {
-// 	/* mark phase */
-//
-// 	cell_p stack;
-// 	cell_p visit;
-//
-// 	if (IN_RAM(temp)) {
-// 		visit = NIL;
-//
-// push:
-// 		stack = visit;
-// 		visit = temp;
-//
-// 		if ((HAS_1_OBJECT_FIELD (visit) && ram_get_gc_tag0 (visit))
-// 		    || (HAS_2_OBJECT_FIELDS (visit)
-// 		        && (ram_get_gc_tags (visit) != GC_TAG_UNMARKED))) {
-// 		} else {
-// 			if (HAS_2_OBJECT_FIELDS(visit)) { // pairs and continuations
-//
-// 				temp = ram_get_cdr (visit);
-//
-// 				if (IN_RAM(temp)) {
-// 					ram_set_gc_tags (visit, GC_TAG_1_LEFT);
-// 					ram_set_cdr (visit, stack);
-// 					goto push;
-// 				}
-//
-// 				goto visit_field1;
-// 			}
-//
-// 			if (HAS_1_OBJECT_FIELD(visit)) {
-//
-// visit_field1:
-// 				temp = ram_get_car (visit);
-//
-// 				if (IN_RAM(temp)) {
-// 					ram_set_gc_tag0 (visit, GC_TAG_0_LEFT);
-// 					ram_set_car (visit, stack);
-//
-// 					goto push;
-// 				}
-// 			} else {
-// 			}
-//
-// 			ram_set_gc_tag0 (visit, GC_TAG_0_LEFT);
-// 		}
-//
-// pop:
-// 		if (stack != OBJ_FALSE) {
-// 			if (HAS_2_OBJECT_FIELDS(stack) && ram_get_gc_tag1 (stack)) {
-// 				temp = ram_get_cdr (stack);  /* pop through cdr */
-// 				ram_set_cdr (stack, visit);
-// 				visit = stack;
-// 				stack = temp;
-//
-// 				ram_set_gc_tag1(visit, GC_TAG_UNMARKED);
-// 				// we unset the "1-left" bit
-//
-// 				goto visit_field1;
-// 			}
-//
-// 			temp = ram_get_car (stack);  /* pop through car */
-// 			ram_set_car (stack, visit);
-// 			visit = stack;
-// 			stack = temp;
-//
-// 			goto pop;
-// 		}
-// 	}
-// }
-
-#define RAM_HAS_RIGHT_LINK(p) \
+#define HAS_RIGHT_LINK(p) \
   ((ram_heap[p].type == CONS_TYPE        ) || \
    (ram_heap[p].type == CONTINUATION_TYPE))
-#define RAM_HAS_LEFT_LINK(p) \
+#define HAS_LEFT_LINK(p) \
   ((ram_heap[p].type == CONS_TYPE        ) || \
    (ram_heap[p].type == CONTINUATION_TYPE) || \
    (ram_heap[p].type == STRING_TYPE      ) || \
@@ -121,72 +49,109 @@
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
 
+PRIVATE void look(char m, cell_p p, cell_p c, cell_p n)
+{
+  return;
+  printf("%c:%d(%d,%d) %d(%d,%d) %d(%d,%d)\n",
+    m,
+    p, RAM_GET_CAR(p), RAM_GET_CDR(p),
+    c, RAM_GET_CAR(c), RAM_GET_CDR(c),
+    n, RAM_GET_CAR(n), RAM_GET_CDR(n));
+}
+
 PRIVATE void mark(cell_p p)
 {
   cell_p current = p;
   cell_p prev    = NIL;
   cell_p next;
 
+  //printf("i:%d(%d,%d)\n", current, RAM_GET_CAR(current), RAM_GET_CDR(current));
   for (;;) {
     while ((current < ram_heap_end) && (ram_heap[current].gc_mark == 0)) {
       ram_heap[current].gc_mark = 1;
       #if STATISTICS
         used_cells_count++;
       #endif
-      if (RAM_HAS_LEFT_LINK(current)) {
+      if (HAS_LEFT_LINK(current)) {
         next = ram_heap[current].cons.car_p;
+        if (prev == current) printf("YEARK1!!!!\n");
         ram_heap[current].cons.car_p = prev;
         prev = current;
         current = next;
       }
-      // else if (RAM_IS_STRING(current)) {
-      //   next = ram_heap[current].string.chars_p;
-      //   while (next != NIL) {
-      //     ram_heap[next].gc_mark = 1;
-      //     #if STATISTICS
-      //       used_cells_count++;
-      //     #endif
-      //     EXPECT(RAM_IS_PAIR(next), "mark", "pair");
-      //     next = ram_heap[next].cons.cdr_p;
-      //   }
-      // }
-      // else if (RAM_IS_BIGNUM(current)) {
-      //   next = ram_heap[current].bignum.next_p;
-      //   while (next != NIL) {
-      //     ram_heap[next].gc_mark = 1;
-      //     #if STATISTICS
-      //       used_cells_count++;
-      //     #endif
-      //     EXPECT(RAM_IS_BIGNUM(next), "mark.1", "bignum");
-      //     next = ram_heap[next].bignum.next_p;
-      //   }
-      // }
-    //   else if (RAM_IS_CONTINUATION(current)) {
-    //     ram_heap[ram_heap[current].continuation.closure_p].gc_mark = 1;
-    //     #if STATISTICS
-    //       used_cells_count++;
-    //     #endif
-    //   }
+      look('a', prev, current, next);
     }
 
+    // Here, current is completed. We go up until we find a node
+    // for which a right link was not processed or has no right
+    // link.
     while ((prev < ram_heap_end) && (ram_heap[prev].gc_flip == 1)) {
       ram_heap[prev].gc_flip = 0;
-      next = ram_heap[prev].cons.cdr_p;
-      ram_heap[prev].cons.cdr_p = current;
+      next = ram_heap[prev].cons.cdr_p; // next is the upper node
+      if (prev == current) printf("YEARK2!!!!\n");
+      ram_heap[prev].cons.cdr_p = current; // re-establish the link down
       current = prev;
-      prev = next;
+      prev    = next;
+      look('b', prev, current, next);
     }
 
-    if (prev == NIL) return;
+    if (prev >= ram_heap_end) break;
 
-    next = ram_heap[prev].cons.car_p;
-    ram_heap[prev].cons.car_p = current;
+    if ((prev < ram_heap_end) && HAS_RIGHT_LINK(prev)) {
+      next = ram_heap[prev].cons.car_p;
+      if (prev == current) printf("YEARK3!!!!\n");
+      ram_heap[prev].cons.car_p = current;
+      look('c', prev, current, next);
 
-    ram_heap[prev].gc_flip = 1;
-    current = ram_heap[prev].cons.cdr_p;
-    ram_heap[prev].cons.cdr_p = next;
+      if (prev >= ram_heap_end) break;
+
+      ram_heap[prev].gc_flip = 1;
+      current = ram_heap[prev].cons.cdr_p;
+      if (prev == next) printf("YEARK4!!!!\n");
+      ram_heap[prev].cons.cdr_p = next;
+      look('e', prev, current, next);
+    }
+    else {
+      while ((prev < ram_heap_end) && !HAS_RIGHT_LINK(prev)) {
+        next = ram_heap[prev].cons.car_p;
+        if (prev == current) printf("YEARK5!!!!\n");
+        ram_heap[prev].cons.car_p = current;
+        current = prev;
+        prev = next;
+        look('d', prev, current, next);
+      }
+    }
   }
 }
+
+// else if (RAM_IS_STRING(current)) {
+//   next = ram_heap[current].string.chars_p;
+//   while (next != NIL) {
+//     ram_heap[next].gc_mark = 1;
+//     #if STATISTICS
+//       used_cells_count++;
+//     #endif
+//     EXPECT(RAM_IS_PAIR(next), "mark", "pair");
+//     next = ram_heap[next].cons.cdr_p;
+//   }
+// }
+// else if (RAM_IS_BIGNUM(current)) {
+//   next = ram_heap[current].bignum.next_p;
+//   while (next != NIL) {
+//     ram_heap[next].gc_mark = 1;
+//     #if STATISTICS
+//       used_cells_count++;
+//     #endif
+//     EXPECT(RAM_IS_BIGNUM(next), "mark.1", "bignum");
+//     next = ram_heap[next].bignum.next_p;
+//   }
+// }
+//   else if (RAM_IS_CONTINUATION(current)) {
+//     ram_heap[ram_heap[current].continuation.closure_p].gc_mark = 1;
+//     #if STATISTICS
+//       used_cells_count++;
+//     #endif
+//   }
 
 void unmark_ram()
 {
@@ -268,6 +233,7 @@ void mm_gc()
   #endif
 
   for (uint8_t i = 0; i < reserved_cells_count; i++) mark(i);
+
   mark(reg1);
   mark(reg2);
   mark(reg3);
@@ -452,6 +418,9 @@ bool mm_init(uint8_t * program)
 
 
 #if TESTS
+
+extern void show(cell_p p);
+
 void mm_tests()
 {
   TESTM("mm");
@@ -474,6 +443,8 @@ void mm_tests()
     EXPECT_TRUE(ram_heap_end == ram_heap_size,             "Ram Heap End and Size not equal");
     EXPECT_TRUE(free_cells == 13,                          "Free Cells pointer must be pointing at index 0");
     EXPECT_TRUE((reg1 == NIL) && (reg2 == NIL) && (reg3 == NIL) && (reg4 == NIL) && (env == NIL) && (cont == NIL), "All registers not initialized to NIL");
+
+#if 0
 
   TEST("Heap allocations");
 
@@ -517,6 +488,48 @@ void mm_tests()
       free_cells_count
     );
 
+#endif
+
+  TEST("Garbage Collertor");
+
+    env = new_pair(FALSE, new_pair(TRUE, NIL));
+    show(env); putchar('\n');
+    mm_gc();
+    show(env); putchar('\n');
+
+    env = new_pair(new_pair(encode_int(1500), FALSE), new_pair(TRUE, NIL));
+    show(env); putchar('\n');
+    mm_gc();
+    show(env); putchar('\n');
+
+    env = new_pair(
+      new_pair(NIL, new_closure(new_pair(TRUE, new_pair(FALSE, NIL)), 123)),
+      new_pair(new_pair(FALSE, TRUE), NIL)
+    );
+    show(env); putchar('\n');
+    mm_gc();
+    show(env); putchar('\n');
+
+    env = new_pair(
+      new_pair(
+        new_cont(
+          NIL,
+          new_closure(
+            new_pair(FALSE, new_pair(FALSE, NIL)),
+            123
+          )
+        ),
+        new_pair(TRUE, NIL)
+      ),
+      new_pair(
+        FALSE, NIL
+      )
+    );
+    show(env); putchar('\n');
+    mm_gc();
+    show(env); putchar('\n');
+
+    #if 0
   TEST("Vector allocations");
 
     vector_p v = mm_new_vector_cell(77, p);
@@ -569,6 +582,6 @@ void mm_tests()
     mm_compact_vector_space();
 
     EXPECT_TRUE(vector_free_cells == 0, "Vector Free Cells pointer is wrong");
-
+#endif
 }
 #endif

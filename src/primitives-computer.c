@@ -56,7 +56,6 @@ loop:
       // }
       // else
       {
-        RAM_SET_MARK(o);
         if (cdr == NIL) {
           printf(")");
         }
@@ -136,7 +135,7 @@ loop:
 void show (cell_p o)
 {
   show_it(o);
-  unmark_ram();
+  //unmark_ram();
 }
 PRIVATE void print (cell_p o)
 {
