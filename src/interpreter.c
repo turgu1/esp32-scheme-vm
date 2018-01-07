@@ -113,7 +113,9 @@ uint8_t prepare_arguments(int8_t nbr_args)
 
 inline void save_cont()
 {
-  cont = new_cont(cont, new_closure(env, pc.c - program));
+  reg5 = new_closure(env, pc.c - program);
+  cont = new_cont(cont, reg5);
+  reg5 = NIL;
 }
 
 /** build_environment.
@@ -294,14 +296,14 @@ void interpreter()
           case BR :
             entry = NEXT_SHORT;
             TRACE("  BR %d\n", entry);
-            pc.c = entry + program;
+            pc.c = program + entry;
             break;
 
           case BRF :
             entry = NEXT_SHORT;
             TRACE("  BRF %d\n", entry);
             if (pop() == FALSE) {
-              pc.c = entry + program;
+              pc.c = program + entry;
             }
             break;
 

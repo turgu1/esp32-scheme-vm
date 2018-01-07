@@ -9,6 +9,10 @@
 uint16_t free_allocated_count;
 #endif
 
+extern void show(cell_p p);
+
+int gc_count = 0;
+
 /*
   // assume all mark bits and all flag bits are 0
   procedure mark(R):
@@ -207,6 +211,8 @@ void return_to_free_list(cell_p p)
 
 void mm_gc()
 {
+  gc_count++;
+
   INFO_MSG("Garbage collection Started");
 
   #if STATISTICS

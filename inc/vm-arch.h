@@ -457,8 +457,8 @@ typedef cell * cell_ptr;
 #define VECTOR_SET_USED(p) vector_heap[p].gc_mark = 1
 #define VECTOR_SET_FREE(p) vector_heap[p].gc_mark = 0
 
-#define VECTOR_GET_BYTE(p, i) *(((char *) &vector_heap[p]) + i)
-#define VECTOR_SET_BYTE(p, i, b) *(((char *) &vector_heap[p]) + i) = b
+#define VECTOR_GET_BYTE(p, i) *(((uint8_t *) &vector_heap[p]) + i)
+#define VECTOR_SET_BYTE(p, i, b) *(((uint8_t *) &vector_heap[p]) + i) = b
 
 // String
 

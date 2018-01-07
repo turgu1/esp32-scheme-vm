@@ -50,7 +50,7 @@ cell_p new_closure(cell_p env, code_p code)
   cell_p p = mm_new_ram_cell();
 
   EXPECT(RAM_IS_PAIR(env) || env == NIL, "new_closure.0", "pair");
-  
+
   ram_heap[p].type = CLOSURE_TYPE;
   ram_heap[p].closure.environment_p = env;
   ram_heap[p].closure.entry_point_p  = code;

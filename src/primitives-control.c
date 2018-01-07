@@ -31,7 +31,7 @@ PRIMITIVE_UNSPEC(pop, pop, 0, 2)
 
 PRIMITIVE(get-cont, get_cont, 0, 3)
 {
-  EXPECT(RAM_IS_CONTINUATION(cont), "get-cont", "continuation");
+  //EXPECT(RAM_IS_CONTINUATION(cont), "get-cont", "continuation");
 
   reg1 = cont;
 }
