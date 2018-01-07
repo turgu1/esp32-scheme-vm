@@ -59,6 +59,7 @@
 #endif
 
 PUBLIC bool   mm_init(uint8_t * program);
+PUBLIC void   mm_mark(cell_p p);
 PUBLIC void   mm_gc();
 PUBLIC cell_p mm_new_ram_cell();
 PUBLIC cell_p mm_new_vector_cell(uint16_t length, cell_p from);

@@ -32,6 +32,8 @@ extern void terminate();
 #define TRACING   1
 #define TESTS     1
 
+#define CONFIG_BIGNUM_LONG 1
+
 #define STATISTICS (STATS || DEBUGGING)
 
 #if DEBUGGING

@@ -104,6 +104,17 @@ cell_p new_fixnum(int32_t value)
   return p;
 }
 
+cell_p new_bignum(int16_t lo, cell_p high)
+{
+  cell_p p = mm_new_ram_cell();
+
+  ram_heap[p].type = BIGNUM_TYPE;
+  ram_heap[p].bignum.num_part = lo;
+  ram_heap[p].bignum.next_p = high;
+
+  return p;
+}
+
 cell_p new_vector(uint16_t length)
 {
   // As mm_new_vector_cell may call garbage collection, it is required
@@ -133,20 +144,20 @@ int32_t decode_int(cell_p p)
       val = 1;
     }
     else {
-      val = p & SMALL_INT_MASK;
-      val--;
+      EXPECT(IS_SMALL_INT(p), "decode_int.0", "snall int");
+      val = SMALL_INT_VALUE(p);
     }
   }
   else if (IN_RAM(p)) {
-    EXPECT(RAM_IS_FIXNUM(p), "decode_int.0", "fixnum");
+    EXPECT(RAM_IS_FIXNUM(p), "decode_int.1", "fixnum");
     val = RAM_GET_FIXNUM_VALUE(p);
   }
   else if (IN_ROM(p)) {
-    EXPECT(ROM_IS_FIXNUM(p), "decode_int.1", "fixnum");
+    EXPECT(ROM_IS_FIXNUM(p), "decode_int.2", "fixnum");
     val = ROM_GET_FIXNUM_VALUE(p);
   }
   else {
-    TYPE_ERROR("decode_int.2", "fixnum");
+    TYPE_ERROR("decode_int.3", "fixnum");
     val = 0;
   }
 
@@ -162,7 +173,7 @@ void decode_2_int_args ()
 cell_p encode_int(int32_t val)
 {
   if ((val >= -1) && (val <= 255)) {
-    return (cell_p) (val + 1) | SMALL_INT_START;
+    return ENCODE_SMALL_INT(val);
   }
   else {
     return new_fixnum(val);

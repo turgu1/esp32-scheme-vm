@@ -1,6 +1,7 @@
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 #include "testing.h"
+#include "bignum.h"
 
 #define MM
 #include "mm.h"
@@ -73,7 +74,7 @@ int gc_count = 0;
 //     n, RAM_GET_CAR(n), RAM_GET_CDR(n));
 // }
 
-PRIVATE void mark(cell_p p)
+void mm_mark(cell_p p)
 {
   cell_p current = p;
   cell_p prev    = NIL;
@@ -219,15 +220,17 @@ void mm_gc()
     used_cells_count = 0;
   #endif
 
-  for (uint8_t i = 0; i < reserved_cells_count; i++) mark(i);
+  for (uint8_t i = 0; i < reserved_cells_count; i++) mm_mark(i);
 
-  mark(reg1);
-  mark(reg2);
-  mark(reg3);
-  mark(reg4);
-  mark(reg5);
-  mark(cont);
-  mark(env);
+  mm_mark(reg1);
+  mm_mark(reg2);
+  mm_mark(reg3);
+  mm_mark(reg4);
+  mm_mark(reg5);
+  mm_mark(cont);
+  mm_mark(env);
+
+  bignum_gc_mark();
 
   mm_sweep();
 
@@ -358,6 +361,8 @@ bool mm_init(uint8_t * program)
   reg5 =
   cont =
   env  = NIL;
+
+  bignum_gc_init();
 
   if ((program[0] != 0xD7) || (program[1] != 0xFB)) {
     ERROR("mm_init", "Program markers are wrong");

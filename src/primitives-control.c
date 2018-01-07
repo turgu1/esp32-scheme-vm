@@ -31,7 +31,7 @@ PRIMITIVE_UNSPEC(pop, pop, 0, 2)
 
 PRIMITIVE(get-cont, get_cont, 0, 3)
 {
-  //EXPECT(RAM_IS_CONTINUATION(cont), "get-cont", "continuation");
+  EXPECT(RAM_IS_CONTINUATION(cont), "get-cont", "continuation");
 
   reg1 = cont;
 }
@@ -71,6 +71,8 @@ PRIMITIVE(return-to-cont, return_to_cont, 2, 5)
   entry = RAM_GET_CLOSURE_ENTRY_POINT(reg2);
   env   = RAM_GET_CLOSURE_ENV(reg2);
   cont  = RAM_GET_CONT_PARENT(cont);
+
+  pc.c = program + entry;
 
   reg2 = NIL;
 }

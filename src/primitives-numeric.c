@@ -6,6 +6,10 @@
 #include "mm.h"
 #include "testing.h"
 
+#ifdef CONFIG_BIGNUM_LONG
+  #include "bignum.h"
+#endif
+
 #include "primitives.h"
 
 PRIMITIVE(number?, number_p, 1, 13)
@@ -163,7 +167,7 @@ PRIMITIVE(bitwise-xor, bitwise_xor, 2, 23)
 PRIMITIVE(bitwise-and, bitwise_and, 2, 24)
 {
 #ifdef CONFIG_BIGNUM_LONG
-  reg1 = bitwise_xor(reg1, reg2);
+  reg1 = bitwise_and(reg1, reg2);
 #else
   decode_2_int_args ();
   reg1 = encode_int(a1 & a2);
