@@ -44,7 +44,7 @@ void terminate()
 
 void usage(char * exename)
 {
-  fprintf(stderr, 
+  fprintf(stderr,
     "Usage: %s [options] filename\n"
     "\nOptions:\n"
     #if TRACING
@@ -53,8 +53,8 @@ void usage(char * exename)
     #if TESTS
       "  -T  Tests\n"
     #endif
-    "  -v  Version\n"
-    "  -V  Verbose\n"
+    "  -v  Verbose\n"
+    "  -V  Version\n"
     "  -?  Print this message\n", exename);
 }
 
@@ -80,7 +80,7 @@ char * options = "vV?"
     char *fname;
     while ((opt = getopt(argc, argv, options)) != -1) {
       switch (opt) {
-        case 'V':
+        case 'v':
           verbose = true;
           break;
         #if TESTS
@@ -98,7 +98,7 @@ char * options = "vV?"
           usage(argv[0]);
           return 1;
           break;
-        case 'v':
+        case 'V':
           printf("%d.%d\n", VERSION_MAJOR, VERSION_MINOR);
           return 0;
         default:
@@ -107,7 +107,7 @@ char * options = "vV?"
           return 1;
       }
     }
-    
+
     if ((optind > 0) && (argc > optind)) {
       fname = argv[optind];
     }

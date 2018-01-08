@@ -111,11 +111,11 @@ uint8_t prepare_arguments(int8_t nbr_args)
   return nbr_args;
 }
 
-inline void save_cont()
+void save_cont()
 {
-  reg5 = new_closure(env, pc.c - program);
-  cont = new_cont(cont, reg5);
-  reg5 = NIL;
+  reg4 = new_closure(env, pc.c - program);
+  cont = new_cont(cont, reg4);
+  reg4 = NIL;
 }
 
 /** build_environment.

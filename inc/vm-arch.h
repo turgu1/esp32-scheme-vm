@@ -21,32 +21,40 @@
 
 /** Cells Definitions.
 
-  Every cell is 40 bits long (5 bytes). To get proper memory compaction, the
-  following option must be used for gcc:
+  Every cell is 40 bits long (5 bytes). To get proper memory compaction for the
+  structure defining a cell, the following option must be used for gcc:
 
      -fpack-struct=1
 
-  On the ESP32, alignement doesn't seems to have any issue on the performance
-  of the code. At least sequential RAM access runs at the same speed even when
-  16 bits words are accessed, aligned or not.
+  It is defined as a pragma in file inc/esp32-scheme-vm.h as follow:
+
+    #pragma pack(1)
+
+  On the ESP32, adresses misalignement of 16 and 32 bits values don't seems to
+  create any issue on the performance of the code. At least sequential RAM
+  access runs at the same speed even when 16 bits words are accessed, aligned
+  or not.
 
   ToDo: Random access remains to be checked
 
-  The address space of the heap cannot go beyond (64k * 5). To address 64K
-  cells, we need 16 bits (2ˆ16 = 64k).
+  The address space of the virtual heap cannot go beyond (64k * 5). To address
+  64K cells, we need 16 bits (2ˆ16 = 64k).
 
-  - The 2 first bit are 0
+  - The 2 first bit are not used by the interpreter but are defined as
+    user_1 and user_2 flags. New primitives are allowed to use them. They area
+    protected by the garbage collector.
   - The 4 following bits are the type of a cell
   - The 2 following bits are the GC bits
   - The rest of the cell depends of the type of cell
 
-  Types 0 .. 7 are reserved for cell type having car pointing at other
+  Types 0 .. 7 are reserved for cell types having car pointing at other
   cells. Types 0 .. 3 are reserved for cells having cdr pointing at other
-  cells. These are to optimize mm_mask() of the gc procedure.
+  cells. These are to optimize mm_mask() of the gc procedure. This must
+  be always respected to insure proper memory management.
 
-  We define the following cells:
+  We define the following cell types:
 
-   cons
+   cons (or pair)
 
       CAR and CDR are indexes in the heap
 
@@ -98,7 +106,7 @@
 
   cstring
 
-      For now, no cstring are present. The following will be implemented later.
+      For now, no cstring are present. The following will be implemented later:
 
       A string constant is a null terminated string located in the ROM space,
       in the cstring pool (?).
@@ -120,7 +128,8 @@
 
    symbol
 
-      For now, no symbols are present. A symbol as a constant will be showned
+      For now, no symbols information are present. Its address in the ROM
+      constant area insure its uniqueness. A symbol as a constant will be showned
       that way:
 
       +----+------+----+---------------+----------------+
@@ -128,7 +137,7 @@
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
-      The following will be implemented later.
+      The following could be implemented later:
 
       The Symbol table is in the rom area. The char list is an index (byte index
       in the constant string pool) to a null terminated string containing the
@@ -224,7 +233,8 @@ typedef struct {
       unsigned int gc_mark : 1;
       unsigned int gc_flip : 1;
       unsigned int    type : 4;
-      unsigned int  unused : 2;
+      unsigned int  user_1 : 1;
+      unsigned int  user_2 : 1;
     };
     uint8_t bits;
   };
@@ -430,6 +440,8 @@ typedef cell * cell_ptr;
 #define RAM_GET_TYPE(p)            ram_heap[p].type
 #define RAM_SET_TYPE(p, t)         ram_heap[p].type = t
 
+#define RAM_GET_BITS(p)            ram_heap[p].bits
+
 #define RAM_GET_CAR(p)             ram_heap[p].cons.car_p
 #define RAM_GET_CDR(p)             ram_heap[p].cons.cdr_p
 
@@ -439,8 +451,26 @@ typedef cell * cell_ptr;
 #define ROM_GET_CAR(p)             rom_heap[ROM_IDX(p)].cons.car_p
 #define ROM_GET_CDR(p)             rom_heap[ROM_IDX(p)].cons.cdr_p
 
-#define RAM_IS_MARKED(p)           ram_heap[p].gc_mark == 1
+#define RAM_IS_MARKED(p)           (ram_heap[p].gc_mark == 1)
+#define RAM_IS_NOT_MARKED(p)       (ram_heap[p].gc_mark == 0)
 #define RAM_SET_MARK(p)            ram_heap[p].gc_mark = 1
+#define RAM_CLR_MARK(p)            ram_heap[p].gc_mark = 0
+
+#define RAM_IS_FLIPPED(p)          (ram_heap[p].gc_flip == 1)
+#define RAM_SET_FLIP(p)            ram_heap[p].gc_flip = 1
+#define RAM_CLR_FLIP(p)            ram_heap[p].gc_flip = 0
+
+#define RAM_IS_USER_1_SET(p)       (ram_heap[p].user_1 == 1)
+#define RAM_SET_USER_1(p)          ram_heap[p].user_1 = 1
+#define RAM_CLR_USER_1(p)          ram_heap[p].user_1 = 0
+
+#define RAM_IS_USER_2_SET(p)       (ram_heap[p].user_2 == 1)
+#define RAM_SET_USER_2(p)          ram_heap[p].user_2 = 1
+#define RAM_CLR_USER_2(p)          ram_heap[p].user_2 = 0
+
+#define HAS_NO_RIGHT_LINK(p)       ((ram_heap[p].bits & 0x30) != 0)
+#define HAS_RIGHT_LINK(p)          ((ram_heap[p].bits & 0x30) == 0)
+#define HAS_LEFT_LINK(p)           ((ram_heap[p].bits & 0x20) == 0)
 
 // Fixnum
 
@@ -464,6 +494,8 @@ typedef cell * cell_ptr;
 
 #define RAM_GET_VECTOR_LENGTH(p)   ram_heap[p].vector.length
 #define ROM_GET_VECTOR_LENGTH(p)   rom_heap[ROM_IDX(p)].vector.length
+
+#define RAM_SET_VECTOR_LENGTH(p, v) ram_heap[p].vector.length = v
 
 #define RAM_SET_VECTOR_START(p, v) ram_heap[p].vector.start_p = v
 #define RAM_GET_VECTOR_START(p)    ram_heap[p].vector.start_p
@@ -489,15 +521,25 @@ typedef cell * cell_ptr;
 #define RAM_STRING_GET_CHARS(p)    ram_heap[p].string.chars_p
 #define ROM_STRING_GET_CHARS(p)    rom_heap[ROM_IDX(p)].string.chars_p
 
+#define RAM_STRING_SET_CHARS(p, v) ram_heap[p].string.chars_p = v
+#define RAM_STRING_CLR_UNUSED(p)   ram_heap[p].string.unused = 0
+
+
 // Continuation
 
 #define RAM_GET_CONT_CLOSURE(p)    ram_heap[p].continuation.closure_p
 #define RAM_GET_CONT_PARENT(p)     ram_heap[p].continuation.parent_p
 
+#define RAM_SET_CONT_CLOSURE(p, v) ram_heap[p].continuation.closure_p = v
+#define RAM_SET_CONT_PARENT(p,v)   ram_heap[p].continuation.parent_p = v
+
 // Closure
 
-#define RAM_GET_CLOSURE_ENV(p)         ram_heap[p].closure.environment_p
-#define RAM_GET_CLOSURE_ENTRY_POINT(p) ram_heap[p].closure.entry_point_p
+#define RAM_GET_CLOSURE_ENV(p)            ram_heap[p].closure.environment_p
+#define RAM_GET_CLOSURE_ENTRY_POINT(p)    ram_heap[p].closure.entry_point_p
+
+#define RAM_SET_CLOSURE_ENV(p, v)         ram_heap[p].closure.environment_p = v
+#define RAM_SET_CLOSURE_ENTRY_POINT(p, v) ram_heap[p].closure.entry_point_p = v
 
 // Globals
 
@@ -514,9 +556,28 @@ typedef cell * cell_ptr;
  reg1 .. reg4 registers for function parameters and evaluation
  pc           program counter (pointer into rom code space)
 
+ Golden rules for those who want to create their own primitives or want to
+ modify the virtual machine:
+
+ 1. Never allocate new cells without having them pointed directly or indirectly
+    by one of the registers (env cont reg1 .. reg4) or global variables. When
+    garbage collection is fired, only the cells connected to these registers
+    and the global variables are kept. All the other cells are put back to the
+    free list and their content will be lost.
+
+  2. Never used registers (env cont reg1 .. reg4) and global variables as
+     scratch space for anything else than scheme cells or encoded values. The
+     garbage collector could become mixed up if those registers contain values
+     that are not related to the address space and encoded values managed by
+     the virtual machine.
+
+  In the preceeding paragraphs, global values are the ones generated by the
+  compiler and located in the RAM heap starting at index 0 (two global
+  variables per cell).
+
  */
 
-PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4, reg5;
+PUBLIC cell_p env, cont, reg1, reg2, reg3, reg4;
 PUBLIC code_p entry;
 PUBLIC uint8_t * program;
 PUBLIC uint16_t max_addr;

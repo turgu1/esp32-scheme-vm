@@ -6,10 +6,15 @@
 
 extern void terminate();
 
-#define COMPUTER   1
-//#define ESP32 0
+#if __linux__ || __OSX__
+  #define COMPUTER 1
+#elif ESP_PLATFORM
+  #define ESP32 1
+#else
+  #error "Not a supported platform"
+#endif
 
-#ifdef ESP32
+#if ESP32
   #include "freertos/FreeRTOS.h"
   #include "freertos/task.h"
   #include "esp_system.h"
@@ -27,7 +32,7 @@ extern void terminate();
   typedef enum { false, true } bool;
 #endif
 
-#define STATS     0
+#define STATS     1
 #define DEBUGGING 1
 #define TRACING   1
 #define TESTS     1

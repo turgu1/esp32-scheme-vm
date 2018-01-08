@@ -14,7 +14,7 @@ DEPEXT      := d
 OBJEXT      := o
 
 #Flags, Libraries and Includes
-CFLAGS      := -Wall -O3 -g -std=gnu99
+CFLAGS      := -Wall -O3 -std=gnu99
 LIB         :=
 INC         := -I$(INCDIR)
 INCDEP      := -I$(INCDIR)
@@ -35,7 +35,7 @@ run:
 	$(TARGETDIR)/$(TARGET) -T
 
 #Copy Resources from Resources Directory to Target Directory
-resources: directories
+resources: directories .primitives.p
 
 #Make the Directories
 directories:

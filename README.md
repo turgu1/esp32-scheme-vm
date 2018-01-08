@@ -2,7 +2,7 @@
 
 A Scheme interpreter to be used both on a linux based host and on an ESP32 IOT processor.
 
-**__Very __** early piece of code. This is work in progress and is not ready for use.
+**Very** early piece of code. This is work in progress and is not ready for use.
 
 This is a port of the PicoBit Scheme system you can find at the following
 [location](https://github.com/stamourv/picobit).
@@ -11,8 +11,9 @@ The ESP32 processor provides an environment that requires a lot of changes to
 the way the scheme vm operate. As such, I decided to develop a new interpreter
 from scratch, using as much as possible from the PicoBit vm implementation.
 
-Another aspect was the relocation of the ram heap to index 0 such that we
-minimize processing of addresses calculation. This requires the relocation of
+A major aspect of this decision is related to the relocation of the code space
+constants, ram, rom and vector heaps to be managed through C vector such that  addresses calculation is done through GCC instead of being manipulated manualy
+through the code. Indexing RAM heap from index 0, requires the relocation of
 ROM space and small numbers/booleans constants in the higher portion of the
 address space.
 
@@ -24,12 +25,12 @@ address space is divided in three zone:
   * 0xFE00 - 0xFFFF: Coded small ints, true, false and ()
 
 Each ROM and RAM data cell is composed of 5 bytes. Please look at file
-inc/vm-arch.h for details regarding the vm architecture. This address spaces
-architecture is different than the original PicoBit. Small changes were
-required to the compiler in support of this setup.
+inc/vm-arch.h for details regarding the vm architecture. As the address space
+architecture is different than the original PicoBit, small changes were
+required to the compiler in support of this setup (file assembler.rkt).
 
-The code is also addressed through a separate vector. Code addresses start at
-0x0000 and is byte addressable.
+The code produced by the compiler is also addressed through a separate vector.
+Code addresses start at 0x0000 and are byte addressable.
 
 esp32-scheme-vm is released under the GPLv3.
 
@@ -42,13 +43,22 @@ December 2017
 
   * Test test Test **All Scheme tests completed, Unit tests at 50%**
   * Implement bignums (no limit integers) **OK**
+  * ESP32 ESP-DIF integration
 
 2. Second priorities
 
-  * Load mechanism through the NET
-  * Implement 32 bits fixnums
-  * Integration on the ESP32 for IOT I/O and networking
+  * Load mechanism through the NET for ESP32
+  * Primitives development and integration on the ESP32 for IOT I/O and networking
   * Documentation **At 30%**
+  * Implement 32 bits Fixnums
+  * Enlarge the global space (from the maximum of 256 global values)
+  * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
+  * Version numbering
+
+3. Third priorities
+
+  * cell seperation of flags and pointers to get pointer alignment on 16
+    and 32 bits adress boundaries
 
 ## Todo for the compiler
 
@@ -58,13 +68,13 @@ December 2017
   * Little-Endian **OK**
   * ROM Heap space (for constants) start at virtual address 0xC000 **OK**
   * Code address space starts at 0x0000, not x8000 **OK**
-  * Fixnums are 32 bits, not 24
-  * Change coding of small Ints, FALSE, TRUE and () **OK**
+  * Change coding of small integers, FALSE, TRUE and () **OK**
 
 2. Second priorities
 
-  * Enlarge the global space
-  * Enlarge the ROM heap space
+  * New 32 bits Fixnums
+  * Enlarge the global space (from the maximum of 256 global values)
+  * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
   * Add version numbering in code (Major + Minor numbers)
 
 # Original PicoBit Readme file

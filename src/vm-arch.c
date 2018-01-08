@@ -14,7 +14,7 @@ cell_p pop()
 {
   #if DEBUGGING
     // all the cons linking stack elements together are from the RAM Heap.
-    if ((env != NIL) && (ram_heap[env].type != CONS_TYPE)) {
+    if ((env != NIL) && (RAM_GET_TYPE(env) != CONS_TYPE)) {
       FATAL("pop.0", "HEAP BROKEN!!!");
     }
   #endif
@@ -51,9 +51,9 @@ cell_p new_closure(cell_p env, code_p code)
 
   EXPECT(RAM_IS_PAIR(env) || env == NIL, "new_closure.0", "pair");
 
-  ram_heap[p].type = CLOSURE_TYPE;
-  ram_heap[p].closure.environment_p = env;
-  ram_heap[p].closure.entry_point_p  = code;
+  RAM_SET_TYPE(p, CLOSURE_TYPE);
+  RAM_SET_CLOSURE_ENV(p, env);
+  RAM_SET_CLOSURE_ENTRY_POINT(p, code);
 
   return p;
 }
@@ -62,9 +62,9 @@ cell_p new_pair(cell_p car, cell_p cdr)
 {
   cell_p p = mm_new_ram_cell();
 
-  ram_heap[p].type = CONS_TYPE;
-  ram_heap[p].cons.car_p = car;
-  ram_heap[p].cons.cdr_p = cdr;
+  RAM_SET_TYPE(p, CONS_TYPE);
+  RAM_SET_CAR(p, car);
+  RAM_SET_CDR(p, cdr);
 
   return p;
 }
@@ -76,9 +76,9 @@ cell_p new_cont(cell_p parent, cell_p closure)
   EXPECT(RAM_IS_CLOSURE(closure), "new_cont.0", "closure");
   EXPECT(RAM_IS_CONTINUATION(parent) || parent == NIL, "new_cont.1", "continuation");
 
-  ram_heap[p].type = CONTINUATION_TYPE;
-  ram_heap[p].continuation.closure_p = closure;
-  ram_heap[p].continuation.parent_p  = parent;
+  RAM_SET_TYPE(p, CONTINUATION_TYPE);
+  RAM_SET_CONT_CLOSURE(p, closure);
+  RAM_SET_CONT_PARENT(p, parent);
 
   return p;
 }
@@ -87,9 +87,9 @@ cell_p new_string(cell_p chars_p)
 {
   cell_p p = mm_new_ram_cell();
 
-  ram_heap[p].type = STRING_TYPE;
-  ram_heap[p].string.chars_p = chars_p;
-  ram_heap[p].string.unused = 0;
+  RAM_SET_TYPE(p, STRING_TYPE);
+  RAM_STRING_SET_CHARS(p, chars_p);
+  RAM_STRING_CLR_UNUSED(p);
 
   return p;
 }
@@ -98,8 +98,8 @@ cell_p new_fixnum(int32_t value)
 {
   cell_p p = mm_new_ram_cell();
 
-  ram_heap[p].type = FIXNUM_TYPE;
-  ram_heap[p].fixnum.value = value;
+  RAM_SET_TYPE(p, FIXNUM_TYPE);
+  RAM_SET_FIXNUM_VALUE(p, value);
 
   return p;
 }
@@ -108,9 +108,9 @@ cell_p new_bignum(int16_t value, cell_p high)
 {
   cell_p p = mm_new_ram_cell();
 
-  ram_heap[p].type = BIGNUM_TYPE;
-  ram_heap[p].bignum.num_part = value;
-  ram_heap[p].bignum.next_p = high;
+  RAM_SET_TYPE(p, BIGNUM_TYPE);
+  RAM_SET_BIGNUM_VALUE(p, value);
+  RAM_SET_BIGNUM_HI(p, high);
 
   return p;
 }
@@ -118,16 +118,16 @@ cell_p new_bignum(int16_t value, cell_p high)
 cell_p new_vector(uint16_t length)
 {
   // As mm_new_vector_cell may call garbage collection, it is required
-  // to use reg5 to save the allocated cell during gc().
+  // to use a reg to save the allocated cell during potential gc() call.
 
-  reg5 = mm_new_ram_cell();
+  reg4 = mm_new_ram_cell();
 
-  ram_heap[reg5].type           = VECTOR_TYPE;
-  ram_heap[reg5].vector.start_p = mm_new_vector_cell(length, reg5);
-  ram_heap[reg5].vector.length  = length;
+  RAM_SET_TYPE(reg4, VECTOR_TYPE);
+  RAM_SET_VECTOR_START(reg4, mm_new_vector_cell(length, reg4));
+  RAM_SET_VECTOR_LENGTH(reg4, length);
 
-  cell_p p = reg5;
-  reg5 = NIL;
+  cell_p p = reg4;
+  reg4 = NIL;
 
   return p;
 }
@@ -198,8 +198,8 @@ void vm_arch_tests()
   TEST("Cells Structure");
 
     p = new_pair(0x0203, 0x0201);
-    EXPECT_TRUE(&ram_heap[p].cons.car_p > &ram_heap[p].cons.cdr_p, "Cells Structure is wrong");
-    EXPECT_TRUE((void *) &ram_heap[p].bits > (void *) &ram_heap[p].cons.car_p, "Cells Structure is wrong (type address must be larger than car address)");
+    EXPECT_TRUE(&RAM_GET_CAR(p) > &RAM_GET_CDR(p), "Cells Structure is wrong");
+    EXPECT_TRUE((void *) &RAM_GET_BITS(p) > (void *) &RAM_GET_CAR(p), "Cells Structure is wrong (type address must be larger than car address)");
 
   TEST("new_pair()");
 
@@ -247,8 +247,8 @@ void vm_arch_tests()
       EXPECT_TRUE(encode_int(i) == (SMALL_INT_START + i + 1), "Small Int encoding wrong");
     }
     p = encode_int(1000);
-    EXPECT_TRUE(RAM_IS_FIXNUM(p), "Integer encoding does not return a FIXNUM");
-    EXPECT_TRUE(RAM_GET_FIXNUM_VALUE(p) == 1000, "Expected encoded value is not 1000");
+    EXPECT_TRUE(RAM_IS_BIGNUM(p), "Integer encoding does not return a FIXNUM");
+    EXPECT_TRUE(decode_int(p) == 1000, "Expected encoded value is not 1000");
 
   TEST("decode_int()");
 

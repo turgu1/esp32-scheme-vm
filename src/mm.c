@@ -14,65 +14,8 @@ extern void show(cell_p p);
 
 int gc_count = 0;
 
-/*
-  // assume all mark bits and all flag bits are 0
-  procedure mark(R):
-    current= R;
-    prev= null;
-    while true do
-      // follow left pointers
-      while current != null && current->markBit == 0 do
-        current->markBit = 1;
-        if current refers to a non-atomic object then
-          next= current->left; current->left= prev;
-          prev= current; current= next;
-      // end of while current
-      // retreat
-      while prev != null && prev->flagBit == 1 do
-        prev->flagBit= 0; next= prev->right;
-        prev->right= current; current= prev;
-        prev= next;
-      // end of while previous
-      if prev == null then
-        return;
-      // switch to right subgraph
-      prev->flagBit= 1;
-      next= prev->left;
-      prev->left= current;
-      current= prev->right;
-      prev->right= next;
-    // end of while true
-
-*/
-
-#define HAS_NO_RIGHT_LINK(p) ((ram_heap[p].bits & 0x30) != 0)
-#define HAS_RIGHT_LINK(p)    ((ram_heap[p].bits & 0x30) == 0)
-#define HAS_LEFT_LINK(p)     ((ram_heap[p].bits & 0x20) == 0)
-
-#if 0
-#define HAS_RIGHT_LINK(p) \
-  ((ram_heap[p].type == CONS_TYPE        ) || \
-   (ram_heap[p].type == CONTINUATION_TYPE))
-#define HAS_LEFT_LINK(p) \
-  ((ram_heap[p].type == CONS_TYPE        ) || \
-   (ram_heap[p].type == CONTINUATION_TYPE) || \
-   (ram_heap[p].type == STRING_TYPE      ) || \
-   (ram_heap[p].type == BIGNUM_TYPE      ) || \
-   (ram_heap[p].type == CLOSURE_TYPE     ))
-#endif
-
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
-
-// PRIVATE void look(char m, cell_p p, cell_p c, cell_p n)
-// {
-//   return;
-//   printf("%c:%d(%d,%d) %d(%d,%d) %d(%d,%d)\n",
-//     m,
-//     p, RAM_GET_CAR(p), RAM_GET_CDR(p),
-//     c, RAM_GET_CAR(c), RAM_GET_CDR(c),
-//     n, RAM_GET_CAR(n), RAM_GET_CDR(n));
-// }
 
 void mm_mark(cell_p p)
 {
@@ -81,14 +24,14 @@ void mm_mark(cell_p p)
   cell_p next;
 
   for (;;) {
-    while ((current < ram_heap_end) && (ram_heap[current].gc_mark == 0)) {
-      ram_heap[current].gc_mark = 1;
+    while ((current < ram_heap_end) && RAM_IS_NOT_MARKED(current)) {
+      RAM_SET_MARK(current);
       #if STATISTICS
         used_cells_count++;
       #endif
       if (HAS_LEFT_LINK(current)) {
-        next = ram_heap[current].cons.car_p;
-        ram_heap[current].cons.car_p = prev;
+        next = RAM_GET_CAR(current);
+        RAM_SET_CAR(current, prev);
         prev = current;
         current = next;
       }
@@ -97,10 +40,10 @@ void mm_mark(cell_p p)
     // Here, current is completed. We go up until we find a node
     // for which a right link was not processed or has no right
     // link.
-    while ((prev < ram_heap_end) && (ram_heap[prev].gc_flip == 1)) {
-      ram_heap[prev].gc_flip = 0;
-      next = ram_heap[prev].cons.cdr_p; // next is the upper node
-      ram_heap[prev].cons.cdr_p = current; // re-establish the link down
+    while ((prev < ram_heap_end) && RAM_IS_FLIPPED(prev)) {
+      RAM_CLR_FLIP(prev);
+      next = RAM_GET_CDR(prev); // next is the upper node
+      RAM_SET_CDR(prev, current); // re-establish the link down
       current = prev;
       prev    = next;
     }
@@ -108,17 +51,17 @@ void mm_mark(cell_p p)
     if (prev >= ram_heap_end) break;
 
     if ((prev < ram_heap_end) && HAS_RIGHT_LINK(prev)) {
-      next = ram_heap[prev].cons.car_p;
-      ram_heap[prev].cons.car_p = current;
-      ram_heap[prev].gc_flip = 1;
-      current = ram_heap[prev].cons.cdr_p;
-      ram_heap[prev].cons.cdr_p = next;
+      next = RAM_GET_CAR(prev);
+      RAM_SET_CAR(prev, current);
+      RAM_SET_FLIP(prev);
+      current = RAM_GET_CDR(prev);
+      RAM_SET_CDR(prev, next);
     }
     else {
       // We go up util a node with a right link is detected
       while ((prev < ram_heap_end) && HAS_NO_RIGHT_LINK(prev)) {
-        next = ram_heap[prev].cons.car_p;
-        ram_heap[prev].cons.car_p = current;
+        next = RAM_GET_CAR(prev);
+        RAM_SET_CAR(prev, current);
         current = prev;
         prev = next;
       }
@@ -151,7 +94,10 @@ void mm_mark(cell_p p)
 PRIVATE void mm_sweep()
 {
   free_cells = NIL;
-  free_allocated_count = 0;
+
+  #if DEBUGGING
+    free_allocated_count = 0;
+  #endif
 
   #if STATISTICS
     free_cells_count = 0;
@@ -180,6 +126,8 @@ PRIVATE void mm_sweep()
     pp--;
 
     // Last loop will have p = reserved_cells_count...
+    // This doesn't work: while (--p >= reserved_cells_count)
+    //    as reserved_cells_count could be 0 and p is unsigned...
   } while (p-- > reserved_cells_count);
 
   // Reset mark bits in the globals area
@@ -197,7 +145,7 @@ PRIVATE bool check_free_list(int count)
 
   while (next != NIL) {
     count--;
-    next = ram_heap[next].cons.cdr_p;
+    next = RAM_GET_CDR(next);
   }
 
   return count == reserved_cells_count;
@@ -226,7 +174,6 @@ void mm_gc()
   mm_mark(reg2);
   mm_mark(reg3);
   mm_mark(reg4);
-  mm_mark(reg5);
   mm_mark(cont);
   mm_mark(env);
 
@@ -358,7 +305,6 @@ bool mm_init(uint8_t * program)
   reg2 =
   reg3 =
   reg4 =
-  reg5 =
   cont =
   env  = NIL;
 
@@ -402,9 +348,9 @@ bool mm_init(uint8_t * program)
   #endif
 
   for (cell_p i = 0; i < reserved_cells_count; i++) {
-    ram_heap[i].type = CONS_TYPE;
-    ram_heap[i].cons.car_p = NIL;
-    ram_heap[i].cons.cdr_p = NIL;
+    RAM_SET_TYPE(i, CONS_TYPE);
+    RAM_SET_CAR(i, NIL);
+    RAM_SET_CDR(i, NIL);
   }
 
   mm_sweep();
@@ -443,8 +389,6 @@ void mm_tests()
     EXPECT_TRUE(ram_heap_end == ram_heap_size,             "Ram Heap End and Size not equal");
     EXPECT_TRUE(free_cells == 13,                          "Free Cells pointer must be pointing at index 0");
     EXPECT_TRUE((reg1 == NIL) && (reg2 == NIL) && (reg3 == NIL) && (reg4 == NIL) && (env == NIL) && (cont == NIL), "All registers not initialized to NIL");
-
-#if 0
 
   TEST("Heap allocations");
 
@@ -488,9 +432,7 @@ void mm_tests()
       free_cells_count
     );
 
-#endif
-
-  TEST("Garbage Collertor");
+  TEST("Garbage Collector");
 
     env = new_pair(FALSE, new_pair(TRUE, NIL));
     show(env); putchar('\n');
@@ -529,7 +471,9 @@ void mm_tests()
     mm_gc();
     show(env); putchar('\n');
 
-    #if 0
+    env = NIL;
+    mm_gc();
+
   TEST("Vector allocations");
 
     vector_p v = mm_new_vector_cell(77, p);
@@ -582,6 +526,5 @@ void mm_tests()
     mm_compact_vector_space();
 
     EXPECT_TRUE(vector_free_cells == 0, "Vector Free Cells pointer is wrong");
-#endif
 }
 #endif
