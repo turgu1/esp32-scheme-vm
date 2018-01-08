@@ -1,7 +1,5 @@
-*.o
-*.d
-scheme
 .primitives.p
+.builtins.p
 compiled/
 
 .DS_Store
@@ -12,3 +10,5 @@ compiled/
 ehthumbs.db
 Thumbs.db
 
+test.hex
+test.scm
