@@ -11,7 +11,6 @@ PRIVATE int oldf;
 
 void kb_init()
 {
-  return;
   tcgetattr(STDIN_FILENO, &oldattr);
   newattr = oldattr;
   newattr.c_lflag &= ~(ICANON | ECHO);
@@ -22,7 +21,6 @@ void kb_init()
 
 void kb_restore()
 {
-  return;
   tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
   fcntl(STDIN_FILENO, F_SETFL, oldf);
 }
