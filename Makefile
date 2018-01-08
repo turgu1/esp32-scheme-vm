@@ -1,3 +1,5 @@
+# Makefile for a Linux or OSX platform
+
 #Compiler and Linker
 CC          := gcc
 
