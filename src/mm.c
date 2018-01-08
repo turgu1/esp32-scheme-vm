@@ -3,6 +3,10 @@
 #include "testing.h"
 #include "bignum.h"
 
+#if STATISTICS && COMPUTER
+  #include <time.h>
+#endif
+
 #define MM
 #include "mm.h"
 
@@ -12,11 +16,83 @@ uint16_t free_allocated_count;
 
 extern void show(cell_p p);
 
-int gc_count = 0;
-
 /** Deutsch-Schorr-Waite Garbage Collection.
  */
 
+#if 0
+// Mark algorithm from the original PicoBit. Can't get it work without
+// fragmentation.
+void mm_mark(cell_p p)
+{
+ 	/* mark phase */
+
+ 	cell_p stack;
+ 	cell_p visit;
+
+ 	if (p < ram_heap_end) {
+ 		visit = NIL;
+
+ push:
+ 		stack = visit;
+ 		visit = p;
+
+ 		if (HAS_LEFT_LINK(visit) && RAM_IS_MARKED(visit)) {
+ 		} else {
+ 			if (HAS_RIGHT_LINK(visit)) { // pairs and continuations
+
+ 				p = RAM_GET_CDR(visit);
+
+ 				if (p < ram_heap_end) {
+ 					RAM_SET_FLIP(visit);
+ 					RAM_SET_CDR(visit, stack);
+ 					goto push;
+ 				}
+
+ 				goto visit_field1;
+ 			}
+
+ 			if (HAS_LEFT_LINK(visit)) {
+
+ visit_field1:
+ 				p = RAM_GET_CAR(visit);
+
+ 				if (p < ram_heap_end) {
+ 					RAM_SET_MARK(visit);
+ 					RAM_SET_CAR(visit, stack);
+ 					goto push;
+ 				}
+ 			}
+
+ 			RAM_SET_MARK(visit);
+ 		}
+
+ pop:
+ 		if (stack < ram_heap_end) {
+ 			if (HAS_RIGHT_LINK(stack) && RAM_IS_FLIPPED(stack)) {
+ 				p = RAM_GET_CDR(stack);  /* pop through cdr */
+ 				RAM_SET_CDR(stack, visit);
+ 				visit = stack;
+ 				stack = p;
+
+ 				RAM_CLR_FLIP(visit);
+ 				// we unset the "1-left" bit
+
+ 				goto visit_field1;
+ 			}
+
+ 			p = RAM_GET_CAR(stack);  /* pop through car */
+ 			RAM_SET_CAR(stack, visit);
+ 			visit = stack;
+ 			stack = p;
+
+ 			goto pop;
+ 		}
+ 	}
+}
+
+#else
+
+// My own design. No fragmentation
 void mm_mark(cell_p p)
 {
   cell_p current = p;
@@ -50,7 +126,7 @@ void mm_mark(cell_p p)
 
     if (prev >= ram_heap_end) break;
 
-    if ((prev < ram_heap_end) && HAS_RIGHT_LINK(prev)) {
+    if (HAS_RIGHT_LINK(prev)) {
       next = RAM_GET_CAR(prev);
       RAM_SET_CAR(prev, current);
       RAM_SET_FLIP(prev);
@@ -68,6 +144,8 @@ void mm_mark(cell_p p)
     }
   }
 }
+
+#endif
 
 #if DEBUGGING
   void unmark_ram()
@@ -103,27 +181,26 @@ PRIVATE void mm_sweep()
     free_cells_count = 0;
   #endif
 
-  cell_p   p = ram_heap_end - 1;
+  cell_p   p  = ram_heap_end - 1;
   cell_ptr pp = &ram_heap[p];
 
   // Don't forget: p cannot be a negative number...
   do {
     if (pp->gc_mark == 1) {
-      pp->gc_mark = 0;
+      (pp--)->gc_mark = 0;
     }
     else {
       if (RAM_IS_VECTOR(p)) {
         VECTOR_SET_FREE(RAM_GET_VECTOR_START(p) - 1);
       }
-      pp->type = CONS_TYPE;
-      pp->cons.cdr_p = free_cells;
+      //pp->type = CONS_TYPE;
+      (pp--)->cons.cdr_p = free_cells;
       free_cells = p;
 
       #if STATISTICS
         free_cells_count++;
       #endif
     }
-    pp--;
 
     // Last loop will have p = reserved_cells_count...
     // This doesn't work: while (--p >= reserved_cells_count)
@@ -133,8 +210,7 @@ PRIVATE void mm_sweep()
   // Reset mark bits in the globals area
   if (reserved_cells_count > 0) {
     do {
-      pp->gc_mark = 0;
-      pp--;
+      (pp--)->gc_mark = 0;
     } while (p-- > 0); // Last loop will have p = 0
   }
 }
@@ -160,12 +236,19 @@ void return_to_free_list(cell_p p)
 
 void mm_gc()
 {
-  gc_count++;
+  gc_call_counter++;
 
   INFO_MSG("Garbage collection Started");
 
   #if STATISTICS
     used_cells_count = 0;
+
+    #if COMPUTER
+      double gc_duration;
+      clock_t start_time;
+      clock_t end_time;
+      start_time = clock();
+    #endif
   #endif
 
   for (uint8_t i = 0; i < reserved_cells_count; i++) mm_mark(i);
@@ -180,6 +263,14 @@ void mm_gc()
   bignum_gc_mark();
 
   mm_sweep();
+
+  #if STATISTICS && COMPUTER
+    end_time = clock();
+    gc_duration = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
+    if (gc_duration > max_gc_duration) {
+      max_gc_duration = gc_duration;
+    }
+  #endif
 
   #if DEBUGGING
     if ((used_cells_count + free_cells_count) != ram_heap_size) {
@@ -318,13 +409,21 @@ bool mm_init(uint8_t * program)
   global_count = program[3];
   reserved_cells_count = (global_count + 1) >> 1;
 
+  #if STATISTICS
+    gc_call_counter = 0;
+  #endif
+
   #ifdef COMPUTER
 
+    #if STATISTICS
+      max_gc_duration = 0;
+    #endif
+
     if ((ram_heap = (cell_ptr) calloc(RAM_HEAP_ALLOCATED, sizeof(cell)))  == NULL) return false;
-    ram_heap_size = 40000;
+    ram_heap_size = RAM_HEAP_ALLOCATED;
 
     if ((vector_heap = (cell_ptr) calloc(VECTOR_HEAP_ALLOCATED, sizeof(cell))) == NULL) return false;
-    vector_heap_size = 30000;
+    vector_heap_size = VECTOR_HEAP_ALLOCATED;
 
   #else // ESP32
     // Todo: Memory Initialisation code for ESP32

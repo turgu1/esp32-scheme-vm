@@ -230,7 +230,6 @@ void interpreter()
         break;
 
       case JUMPS :
-        printf("YOYOYOYO!!!\n");
         entry = (pc.c - program) + (instr & 0x0F);
         TRACE("  JUMPS %d\n", entry);
 

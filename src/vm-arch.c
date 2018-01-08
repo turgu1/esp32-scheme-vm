@@ -14,7 +14,7 @@ cell_p pop()
 {
   #if DEBUGGING
     // all the cons linking stack elements together are from the RAM Heap.
-    if ((env != NIL) && (RAM_GET_TYPE(env) != CONS_TYPE)) {
+    if ((env != NIL) && !RAM_IS_PAIR(env)) {
       FATAL("pop.0", "HEAP BROKEN!!!");
     }
   #endif
@@ -49,7 +49,7 @@ cell_p new_closure(cell_p env, code_p code)
 {
   cell_p p = mm_new_ram_cell();
 
-  EXPECT(RAM_IS_PAIR(env) || env == NIL, "new_closure.0", "pair");
+  EXPECT((env == NIL) || RAM_IS_PAIR(env), "new_closure.0", "pair");
 
   RAM_SET_TYPE(p, CLOSURE_TYPE);
   RAM_SET_CLOSURE_ENV(p, env);
@@ -74,7 +74,7 @@ cell_p new_cont(cell_p parent, cell_p closure)
   cell_p p = mm_new_ram_cell();
 
   EXPECT(RAM_IS_CLOSURE(closure), "new_cont.0", "closure");
-  EXPECT(RAM_IS_CONTINUATION(parent) || parent == NIL, "new_cont.1", "continuation");
+  EXPECT((parent == NIL) || RAM_IS_CONTINUATION(parent), "new_cont.1", "continuation");
 
   RAM_SET_TYPE(p, CONTINUATION_TYPE);
   RAM_SET_CONT_CLOSURE(p, closure);

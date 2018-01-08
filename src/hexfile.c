@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include "esp32-scheme-vm.h"
 #include "vm-arch.h"
 
@@ -43,7 +42,7 @@ PRIVATE uint16_t hex2short(char **str)
 
 bool read_hex_file(char * filename, uint8_t * buffer, int size)
 {
-  char line[200];
+  char line[100];
 
   uint8_t  len;
   uint16_t addr;
@@ -61,7 +60,7 @@ bool read_hex_file(char * filename, uint8_t * buffer, int size)
   max_addr = 0;
 
   while (!feof(f) && !completed && !error) {
-    if (fgets(line, 200, f) == NULL) {
+    if (fgets(line, 99, f) == NULL) {
       ERROR_MSG("read_hex_file: I/O Error reading file %s.", filename);
       return false;
     }

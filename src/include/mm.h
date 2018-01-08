@@ -8,8 +8,8 @@
 #endif
 
 #ifdef COMPUTER
-  #define RAM_HEAP_ALLOCATED 40000
-  #define VECTOR_HEAP_ALLOCATED 30000
+  #define RAM_HEAP_ALLOCATED    40000 // (8192 - 1280)
+  #define VECTOR_HEAP_ALLOCATED 30000 // 8192
 #endif
 
 /** Memory management.
@@ -69,6 +69,14 @@ PUBLIC void   unmark_ram();
 #if DEBUGGING
   PUBLIC void unmark_ram();
   PUBLIC bool is_free(cell_p p);
+#endif
+
+#if STATISTICS && COMPUTER
+  PUBLIC double max_gc_duration;
+#endif
+
+#if STATISTICS
+  PUBLIC int gc_call_counter;
 #endif
 
 #undef PUBLIC

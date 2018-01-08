@@ -25,8 +25,8 @@ void EXPECT_TRUE(bool val, char * info, ...)
     va_start(ap, info);
     strcpy(buf, "\nTest failed: ");
     strncat(buf, info, 200 - 15);
-    vprintf(buf, ap);
-    putchar('\n');
+    vfprintf(stderr, buf, ap);
+    fputc('\n', stderr);
     failed_count++;
   }
 }
@@ -47,7 +47,7 @@ void conduct_tests()
   hexfile_tests();
   interpreter_tests();
 
-  printf(
+  fprintf(stderr,
     "\n\n--------------------\nTests completed: %d\nTests failed: %d\n--------------------\n",
     tested_count,
     failed_count);
@@ -66,8 +66,8 @@ void TRACE(char * format, ...)
     //show(env);
     //putchar('\n');
     va_start(ap, format);
-    printf("[%ld]", last_pc.c - program);
-    vprintf(format, ap);
+    fprintf(stderr, "[%ld]", last_pc.c - program);
+    vfprintf(stderr, format, ap);
     fflush(stdout);
   }
 }

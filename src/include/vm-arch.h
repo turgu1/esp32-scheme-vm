@@ -618,6 +618,5 @@ PUBLIC cell_ptr rom_heap;  // read only
 
 PUBLIC cell_ptr vector_heap;
 
-
 #undef PUBLIC
 #endif

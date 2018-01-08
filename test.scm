@@ -1,9 +1,5 @@
-(define (fib n)
-  (fib-iter 1 0 n))
-
-(define (fib-iter a b count)
-  (if (= count 0)
-      b
-      (fib-iter (+ a b) a (- count 1))))
-
-(displayln (fib 200))
+(let loop ((i 0))
+  (if (< i 2000)
+      (begin (display i)
+             (displayln (= (* 21435 2141241) 45897500835))
+             (loop (+ i 1)))))

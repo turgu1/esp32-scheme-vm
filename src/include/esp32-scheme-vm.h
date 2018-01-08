@@ -42,25 +42,25 @@ extern void terminate();
 #define STATISTICS (STATS || DEBUGGING)
 
 #if DEBUGGING
-  #define DEBUG(format, ...) printf(format, ## __VA_ARGS__)
+  #define DEBUG(format, ...) fprintf(stderr, format, ## __VA_ARGS__)
 #else
   #define DEBUG(format, ...)
 #endif
 
 #if DEBUGGING
-  #define   FATAL_MSG(format, ...) { printf(  "\nFATAL - In " format, ## __VA_ARGS__); putchar('\n'); fflush(stdout); terminate(); }
-  #define   ERROR_MSG(format, ...) { printf(  "\nERROR - In " format, ## __VA_ARGS__); putchar('\n'); }
-  #define WARNING_MSG(format, ...) { printf("\nWARNING - In " format, ## __VA_ARGS__); putchar('\n'); }
-  #define    INFO_MSG(format, ...) { if (verbose) { printf(   "\nINFO - In " format, ## __VA_ARGS__); putchar('\n'); } }
+  #define   FATAL_MSG(format, ...) { fprintf(stderr, "\nFATAL - In " format, ## __VA_ARGS__); putchar('\n'); fflush(stdout); terminate(); }
+  #define   ERROR_MSG(format, ...) { fprintf(stderr, "\nERROR - In " format, ## __VA_ARGS__); putchar('\n'); }
+  #define WARNING_MSG(format, ...) { fprintf(stderr, "\nWARNING - In " format, ## __VA_ARGS__); putchar('\n'); }
+  #define    INFO_MSG(format, ...) { if (verbose) { fprintf(stderr,    "\nINFO - In " format, ## __VA_ARGS__); putchar('\n'); } }
 
-  #define   FATAL(a, b) { printf(  "\nFATAL - In %s: %s.\n", a, b); fflush(stdout); terminate(); }
-  #define   ERROR(a, b)   printf(  "\nERROR - In %s: %s.\n", a, b)
-  #define WARNING(a, b)   printf("\nWARNING - In %s: %s.\n", a, b)
-  #define    INFO(a, b)   if (verbose) { printf("\nINFO - In %s: %s.\n", a, b); }
+  #define   FATAL(a, b) { fprintf(stderr,  "\nFATAL - In %s: %s.\n", a, b); fflush(stdout); terminate(); }
+  #define   ERROR(a, b)   fprintf(stderr,  "\nERROR - In %s: %s.\n", a, b)
+  #define WARNING(a, b)   fprintf(stderr,"\nWARNING - In %s: %s.\n", a, b)
+  #define    INFO(a, b)   if (verbose) { fprintf(stderr, "\nINFO - In %s: %s.\n", a, b); }
 
   #define TYPE_ERROR(proc, exp) FATAL(proc, "Expecting \"" exp "\"")
-  #define EXPECT(test, proc, exp) { if (!(test)) { printf("\nAt [%ld]: ", last_pc.c - program); TYPE_ERROR(proc, exp); } }
-  #define MARK(c) { if (verbose) { putchar(c); fflush(stdout); } }
+  #define EXPECT(test, proc, exp) { if (!(test)) { fprintf(stderr, "\nAt [%ld]: ", last_pc.c - program); TYPE_ERROR(proc, exp); } }
+  #define MARK(c) { if (verbose) { fputc(c, stderr); fflush(stderr); } }
 #else
   #define   FATAL_MSG(format, ...) terminate()
   #define   ERROR_MSG(format, ...)

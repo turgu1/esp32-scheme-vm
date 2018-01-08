@@ -37,6 +37,15 @@ bool initialisations(char * program_filename)
 
 void terminate()
 {
+  #if STATISTICS
+    INFO_MSG("terminate: GC Processing Count: %d.", gc_call_counter);
+    #if COMPUTER
+      INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
+    #endif
+    fputc('\n', stderr);
+  #endif
+
+  fflush(stderr);
   fflush(stdout);
   kb_restore();
   exit(1);
