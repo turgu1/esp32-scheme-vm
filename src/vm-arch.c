@@ -104,12 +104,12 @@ cell_p new_fixnum(int32_t value)
   return p;
 }
 
-cell_p new_bignum(int16_t lo, cell_p high)
+cell_p new_bignum(int16_t value, cell_p high)
 {
   cell_p p = mm_new_ram_cell();
 
   ram_heap[p].type = BIGNUM_TYPE;
-  ram_heap[p].bignum.num_part = lo;
+  ram_heap[p].bignum.num_part = value;
   ram_heap[p].bignum.next_p = high;
 
   return p;
@@ -132,6 +132,7 @@ cell_p new_vector(uint16_t length)
   return p;
 }
 
+// Can decode up to 24 bits
 int32_t decode_int(cell_p p)
 {
   int val;
@@ -149,15 +150,17 @@ int32_t decode_int(cell_p p)
     }
   }
   else if (IN_RAM(p)) {
-    EXPECT(RAM_IS_FIXNUM(p), "decode_int.1", "fixnum");
-    val = RAM_GET_FIXNUM_VALUE(p);
+    EXPECT(RAM_IS_BIGNUM(p), "decode_int.1", "bignum");
+    EXPECT(IS_SMALL_INT(RAM_GET_BIGNUM_HI(p)), "decode_int.3", "small int");
+    val = RAM_GET_BIGNUM_VALUE(p) + (SMALL_INT_VALUE(RAM_GET_BIGNUM_HI(p)));
   }
   else if (IN_ROM(p)) {
-    EXPECT(ROM_IS_FIXNUM(p), "decode_int.2", "fixnum");
-    val = ROM_GET_FIXNUM_VALUE(p);
+    EXPECT(ROM_IS_BIGNUM(p), "decode_int.4", "bignum");
+    EXPECT(IS_SMALL_INT(ROM_GET_BIGNUM_HI(p)), "decode_int.5", "small int");
+    val = ROM_GET_BIGNUM_VALUE(p) + (SMALL_INT_VALUE(ROM_GET_BIGNUM_HI(p)));
   }
   else {
-    TYPE_ERROR("decode_int.3", "fixnum");
+    TYPE_ERROR("decode_int.6", "fixnum");
     val = 0;
   }
 
@@ -176,7 +179,8 @@ cell_p encode_int(int32_t val)
     return ENCODE_SMALL_INT(val);
   }
   else {
-    return new_fixnum(val);
+    EXPECT(val < 0x07FFFFF, "encode_int", "Value too large");
+    return new_bignum(val & 0x0000FFFF, ENCODE_SMALL_INT(val >> 16));
   }
 }
 

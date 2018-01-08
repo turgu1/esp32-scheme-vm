@@ -15,6 +15,7 @@ typedef cell_p integer;
  * representation for the cases where a result of
  * an operation is wider than a `digit'.
  */
+ 
 typedef uint16_t digit;
 typedef uint32_t two_digit;
 

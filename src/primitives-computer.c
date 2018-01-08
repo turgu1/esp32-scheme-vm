@@ -152,6 +152,9 @@ PRIMITIVE_UNSPEC(print, print, 1, 38)
 }
 
 
+// To limit the value to something inside 32 bits,
+// a second is equal to 100 ticks.
+
 PRIVATE uint32_t read_clock ()
 {
   uint32_t now = 0;
@@ -160,7 +163,7 @@ PRIVATE uint32_t read_clock ()
   struct timeval tv;
 
   if (gettimeofday (&tv, NULL) == 0) {
-    now = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    now = tv.tv_sec * 100 + tv.tv_usec / 10000;
 
     if (start == 0) {
       start = now;
@@ -187,15 +190,14 @@ PRIMITIVE(#%getchar-wait, getchar_wait, 2, 40)
   }
 
   reg1 = reg2 = NIL;
-
+  a3 = 0;
   do {
-    if ((reg1 = kb_getch()))  {
-      reg1 = encode_int (reg1);
+    if ((a3 = kb_getch()))  {
       break;
     }
   } while (read_clock () < a1);
 
-  reg1 = encode_int(reg1);
+  reg1 = encode_int(a3);
 }
 
 PRIMITIVE_UNSPEC(#%putchar, putchar, 2, 41)

@@ -48,6 +48,19 @@
 ;  (define new-constants (dict-set constants obj descr))
 ;)
 
+; [(exact-integer? o)
+;  (if (< (integer-length o) 32)
+;    new-constants
+;    (let ([hi (arithmetic-shift o -16)])
+;      (vector-set! descr 3 hi)
+;      ;; Recursion will stop once we reach 0 or -1 as the
+;      ;; high part, which will be matched by encode-direct.
+;      ;; Only the high part needs to be registered as a new
+;      ;; constant. The low part will be filled in at
+;      ;; encoding time.
+;      (add-constant hi new-constants #f))
+;  )]
+
 ;; TODO actually, seem to be in a pair, scheme object in car, vector in cdr
 ;; constant objects are represented by vectors
 ;; 0 : encoding (ROM address) TODO really the ROM address ?
@@ -89,8 +102,6 @@
                   (vector-set! descr 3 elems)
                   (add-constant elems new-constants #f))]
                [(exact-integer? o)
-                (if (< (integer-length o) 32)
-                  new-constants
                   (let ([hi (arithmetic-shift o -16)])
                     (vector-set! descr 3 hi)
                     ;; Recursion will stop once we reach 0 or -1 as the
@@ -98,8 +109,7 @@
                     ;; Only the high part needs to be registered as a new
                     ;; constant. The low part will be filled in at
                     ;; encoding time.
-                    (add-constant hi new-constants #f))
-                )]
+                    (add-constant hi new-constants #f))]
                (else
                 new-constants))]))
 
@@ -275,6 +285,21 @@
         [else
          (+ (- x min-rom-encoding) #xC000)]))
 
+         ; [(exact-integer? obj)
+         ;        ;-(display " exact-integer: ")
+         ;        (if (< (integer-length obj) 32)
+         ;          (begin (asm-32 obj) ;; FIXNUM
+         ;                 (asm-8  #x20)
+         ;                 ;-(printf "obj: ~v~n" obj)
+         ;           )
+         ;          (let ([hi (to_rom_index (encode-constant d3 constants))]) ;; BIGNUM
+         ;            (asm-16 obj)   ; bits 0-15
+         ;            (asm-16 hi)    ; pointer to hi
+         ;            (asm-8 #x14)
+         ;            ;-(printf "obj: ~v hi: ~v~n" obj hi)
+         ;          )
+         ;        )] ; FIXNUM / BIGNUM CODE
+
 (define (assemble-constant x constants)
   (match x
     [`(,obj . ,(and descr `#(,idx ,label ,_ ,d3)))
@@ -282,18 +307,10 @@
      ;; see the vm source for a description of encodings
      ;-(printf "[~v]" idx)
      (cond [(exact-integer? obj)
-            ;-(display " exact-integer: ")
-            (if (< (integer-length obj) 32)
-              (begin (asm-32 obj) ;; FIXNUM
-                     (asm-8  #x20)
-                     ;-(printf "obj: ~v~n" obj)
-               )
-              (let ([hi (to_rom_index (encode-constant d3 constants))]) ;; BIGNUM
-                (asm-16 obj)   ; bits 0-15
-                (asm-16 hi)    ; pointer to hi
-                (asm-8 #x14)
-                ;-(printf "obj: ~v hi: ~v~n" obj hi)
-              )
+            (let ([hi (to_rom_index (encode-constant d3 constants))]) ;; BIGNUM
+              (asm-16 obj)   ; bits 0-15
+              (asm-16 hi)    ; pointer to hi
+              (asm-8 #x14)
             )] ; FIXNUM / BIGNUM CODE
            [(pair? obj)
             ;-(display " pair: ")

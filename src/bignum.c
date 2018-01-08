@@ -45,22 +45,12 @@ void bignum_gc_mark()
 PRIVATE integer integer_hi(integer x)
 {
 	if (IN_RAM(x)) {
-    EXPECT(RAM_IS_NUMBER(x), "integer_hi.0", "number");
-    if (RAM_IS_BIGNUM(x)) {
-		  return RAM_GET_BIGNUM_HI(x);
-    }
-    else {
-      return (RAM_GET_FIXNUM_VALUE(x) < 0) ? NEG1 : ZERO;
-    }
+    EXPECT(RAM_IS_BIGNUM(x), "integer_hi.0", "bignum");
+		return RAM_GET_BIGNUM_HI(x);
 	}
   else if (IN_ROM(x)) {
-    EXPECT(ROM_IS_NUMBER(x), "integer_hi.1", "number");
-    if (ROM_IS_BIGNUM(x)) {
-		  return ROM_GET_BIGNUM_HI(x);
-    }
-    else {
-      return (ROM_GET_FIXNUM_VALUE(x) < 0) ? NEG1 : ZERO;
-    }
+    EXPECT(ROM_IS_BIGNUM(x), "integer_hi.1", "bignum");
+		return ROM_GET_BIGNUM_HI(x);
 	}
   else if (x == NEG1) {
 		return NEG1;        /* negative small int */
@@ -71,7 +61,7 @@ PRIVATE integer integer_hi(integer x)
 	}
 }
 
-PRIVATE two_digit integer_lo (integer x)
+PRIVATE digit integer_lo (integer x)
 {
 	if (IN_RAM(x)) {
     EXPECT(RAM_IS_BIGNUM(x), "integer_lo.0", "bignum");

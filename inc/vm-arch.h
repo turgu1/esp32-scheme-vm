@@ -396,7 +396,7 @@ typedef cell * cell_ptr;
 #define IS_SMALL_INT(p)            ((p >= SMALL_INT_START) && (p <= SMALL_INT_MAX))
 
 #define SMALL_INT_VALUE(p)         (((int16_t)(p & SMALL_INT_MASK)) - 1)
-#define ENCODE_SMALL_INT(v)        ((cell_p) (v + 1) | SMALL_INT_START)
+#define ENCODE_SMALL_INT(v)        ((cell_p) ((v) + 1) | SMALL_INT_START)
 
 #define ROM_START_ADDR             ((IDX) 0xC000)
 #define ROM_MAX_ADDR               ((IDX) 0xFE00)
