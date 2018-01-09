@@ -3,6 +3,8 @@
 #include "testing.h"
 #include "bignum.h"
 
+#include <string.h>
+
 #if STATISTICS && COMPUTER
   #include <time.h>
 #endif
@@ -92,7 +94,7 @@ void mm_mark(cell_p p)
 
 #else
 
-// My own design. No fragmentation
+// My own design. No fragmentation. (GT)
 void mm_mark(cell_p p)
 {
   cell_p current = p;
@@ -150,11 +152,10 @@ void mm_mark(cell_p p)
 #if DEBUGGING
   void unmark_ram()
   {
-    cell_ptr pp = &ram_heap[ram_heap_end];
+    cell_flags_ptr fp = &ram_heap_flags[ram_heap_end];
 
-    // Don't forget: p cannot be a negative number...
-    while (--pp >= ram_heap) {
-      pp->gc_mark = 0;
+    while (--fp >= ram_heap_flags) {
+      fp->gc_mark = 0;
     }
   }
 
@@ -181,20 +182,23 @@ PRIVATE void mm_sweep()
     free_cells_count = 0;
   #endif
 
-  cell_p   p  = ram_heap_end - 1;
-  cell_ptr pp = &ram_heap[p];
+  cell_p          p = ram_heap_end - 1;
+  cell_flags_ptr fp = &ram_heap_flags[p];
+  cell_data_ptr  dp = &ram_heap_data[p];
 
   // Don't forget: p cannot be a negative number...
   do {
-    if (pp->gc_mark == 1) {
-      (pp--)->gc_mark = 0;
+    if (fp->gc_mark == 1) {
+      (fp--)->gc_mark = 0;
+      dp--;
     }
     else {
       if (RAM_IS_VECTOR(p)) {
         VECTOR_SET_FREE(RAM_GET_VECTOR_START(p) - 1);
       }
       //pp->type = CONS_TYPE;
-      (pp--)->cons.cdr_p = free_cells;
+      (dp--)->cons.cdr_p = free_cells;
+      fp--;
       free_cells = p;
 
       #if STATISTICS
@@ -210,7 +214,7 @@ PRIVATE void mm_sweep()
   // Reset mark bits in the globals area
   if (reserved_cells_count > 0) {
     do {
-      (pp--)->gc_mark = 0;
+      (fp--)->gc_mark = 0;
     } while (p-- > 0); // Last loop will have p = 0
   }
 }
@@ -383,6 +387,7 @@ cell_p mm_new_ram_cell()
 
   cell_p p = free_cells;
   free_cells = RAM_GET_CDR(free_cells);
+
   #if DEBUGGING
     free_allocated_count++;
   #endif
@@ -419,7 +424,8 @@ bool mm_init(uint8_t * program)
       max_gc_duration = 0;
     #endif
 
-    if ((ram_heap = (cell_ptr) calloc(RAM_HEAP_ALLOCATED, sizeof(cell)))  == NULL) return false;
+    if ((ram_heap_data = (cell_data_ptr) calloc(RAM_HEAP_ALLOCATED, sizeof(cell_data)))  == NULL) return false;
+    if ((ram_heap_flags = (cell_flags_ptr) calloc(RAM_HEAP_ALLOCATED, sizeof(cell_flags)))  == NULL) return false;
     ram_heap_size = RAM_HEAP_ALLOCATED;
 
     if ((vector_heap = (cell_ptr) calloc(VECTOR_HEAP_ALLOCATED, sizeof(cell))) == NULL) return false;
@@ -480,7 +486,8 @@ void mm_tests()
     EXPECT_TRUE(check_free_list(ram_heap_size),            "Check Ram Heap Free Size return wrong count");
     EXPECT_TRUE(global_count == 25,                        "Globals count != 25");
     EXPECT_TRUE(reserved_cells_count == 13,                "Reserved cells count != 13");
-    EXPECT_TRUE(ram_heap != NULL,                          "Ram Heap pointer is NULL");
+    EXPECT_TRUE(ram_heap_data != NULL,                     "Ram Heap data pointer is NULL");
+    EXPECT_TRUE(ram_heap_flags != NULL,                    "Ram Heap flags pointer is NULL");
     EXPECT_TRUE(vector_heap != NULL,                       "Vector Heap pointer is NULL");
     EXPECT_TRUE(ram_heap_size == RAM_HEAP_ALLOCATED,       "Ram Heap Size is wrong");
     EXPECT_TRUE(vector_heap_size == VECTOR_HEAP_ALLOCATED, "Vector Heap Size is wrong");

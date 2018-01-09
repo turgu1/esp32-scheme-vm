@@ -18,71 +18,67 @@
 #include "interpreter.h"
 #include "testing.h"
 
-bool initialisations(char * program_filename)
-{
-  if ((program = calloc(65536, 1)) == NULL) {
-    FATAL("initialisations", "Unable to allocate program space");
+#if COMPUTER
+  bool initialisations(char * program_filename)
+  {
+    if ((program = calloc(65536, 1)) == NULL) {
+      FATAL("initialisations", "Unable to allocate program space");
+    }
+
+    if (!read_hex_file(program_filename, program, 65536)) return false;
+
+    if (!mm_init(program)) return false;
+
+    vm_arch_init();
+
+    kb_init();
+
+    return true;
   }
 
-  if (!read_hex_file(program_filename, program, 65536)) return false;
-
-  if (!mm_init(program)) return false;
-
-  vm_arch_init();
-
-  kb_init();
-
-  return true;
-}
-
-void terminate()
-{
-  #if STATISTICS
-    INFO_MSG("terminate: GC Processing Count: %d.", gc_call_counter);
-    #if COMPUTER
-      INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
+  void terminate()
+  {
+    #if STATISTICS
+      INFO_MSG("terminate: GC Processing Count: %d.", gc_call_counter);
+      #if COMPUTER
+        INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
+      #endif
+      fputc('\n', stderr);
     #endif
-    fputc('\n', stderr);
+
+    fflush(stderr);
+    fflush(stdout);
+    kb_restore();
+    exit(1);
+  }
+
+  void usage(char * exename)
+  {
+    fprintf(stderr,
+      "Usage: %s [options] intelhex_filename\n"
+      "\nOptions:\n"
+      #if TRACING
+        "  -t  Trace\n"
+      #endif
+      #if TESTS
+        "  -T  Tests\n"
+      #endif
+      "  -v  Verbose\n"
+      "  -V  Version\n"
+      "  -?  Print this message\n", exename);
+  }
+
+  char * options = "vV?"
+  #if TRACING
+    "t"
   #endif
+  #if TESTS
+    "T"
+  #endif
+  ;
 
-  fflush(stderr);
-  fflush(stdout);
-  kb_restore();
-  exit(1);
-}
-
-void usage(char * exename)
-{
-  fprintf(stderr,
-    "Usage: %s [options] filename\n"
-    "\nOptions:\n"
-    #if TRACING
-      "  -t  Trace\n"
-    #endif
-    #if TESTS
-      "  -T  Tests\n"
-    #endif
-    "  -v  Verbose\n"
-    "  -V  Version\n"
-    "  -?  Print this message\n", exename);
-}
-
-char * options = "vV?"
-#if TRACING
-  "t"
-#endif
-#if TESTS
-  "T"
-#endif
-;
-
-#ifdef COMPUTER
   int main(int argc, char **argv)
-#else
-  void app_main()
-#endif
-{
-  #ifdef COMPUTER
+  {
     int opt = 0;
     trace = false;
     verbose = false;
@@ -125,29 +121,72 @@ char * options = "vV?"
       return 1;
     }
     if (!initialisations(fname)) {
-  #else
+      ERROR("main", "Unable to properly initialise the environment");
+    }
+
+    interpreter();
+
+    #if DEBUGGING
+      INFO("main", "Execution completed");
+    #endif
+
+    terminate();
+
+    return 0;
+  }
+#endif
+
+#if ESP32
+
+  bool initialisations(char * program_filename)
+  {
+    if ((program = calloc(65536, 1)) == NULL) {
+      FATAL("initialisations", "Unable to allocate program space");
+    }
+
+    if (!read_hex_file(program_filename, program, 65536)) return false;
+
+    if (!mm_init(program)) return false;
+
+    vm_arch_init();
+
+    kb_init();
+
+    return true;
+  }
+
+  void terminate()
+  {
+    #if STATISTICS
+      INFO_MSG("terminate: GC Processing Count: %d.", gc_call_counter);
+      #if COMPUTER
+        INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
+      #endif
+      fputc('\n', stderr);
+    #endif
+
+    fflush(stderr);
+    fflush(stdout);
+    kb_restore();
+    exit(1);
+  }
+
+  void app_main()
+  {
     if (!initialisations("program.hex")) {
-  #endif
-    ERROR("main", "Unable to properly initialise the environment");
-    #ifdef ESP32
       esp_restart();
       for (int i = 10; i >= 0; i--) {
           printf("Restarting in %d seconds...\n", i);
           vTaskDelay(1000 / portTICK_PERIOD_MS);
       }
-    #endif
+    }
+
+    interpreter();
+
+    terminate();
   }
 
-  interpreter();
-
-  #if DEBUGGING
-    INFO("main", "Execution completed");
-  #endif
-
-  terminate();
-
-  return 0;
-}
+#endif
 
 #if 0
   #include "freertos/FreeRTOS.h"

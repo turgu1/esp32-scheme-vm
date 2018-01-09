@@ -169,8 +169,8 @@ void interpreter()
     uint8_t instr = NEXT_BYTE;
 
     switch (instr & 0xF0) {
-      case LDCS1 :
-      case LDCS2 :
+      case INSTR_LDCS1 :
+      case INSTR_LDCS2 :
         r1 = instr & 0x1F;
         TRACE("  LDCS %d\n", r1);
         if (r1 < 3) {
@@ -181,8 +181,8 @@ void interpreter()
         }
         break;
 
-      case LDSTK1 :
-      case LDSTK2 :
+      case INSTR_LDSTK1 :
+      case INSTR_LDSTK2 :
         r1 = instr & 0x1F;
         TRACE("  LDSTK %d\n", r1);
 
@@ -194,7 +194,7 @@ void interpreter()
         reg1 = NIL;
         break;
 
-      case LDS :
+      case INSTR_LDS :
         r1 = instr & 0x0F;
         TRACE("  LDS %d\n", r1);
         reg1 = GLOBAL_GET(r1);
@@ -202,13 +202,13 @@ void interpreter()
         reg1 = NIL;
         break;
 
-      case STS :
+      case INSTR_STS :
         r1 = instr & 0x0F;
         TRACE("  STS %d\n", r1);
         GLOBAL_SET(r1, pop());
         break;
 
-      case CALLC :  // Call with closure on TOS
+      case INSTR_CALLC :  // Call with closure on TOS
         r1 = instr & 0x0F;
         TRACE("  CALLC %d\n", r1);
         build_environment(prepare_arguments(r1));
@@ -219,7 +219,7 @@ void interpreter()
         reg1 = reg2 = NIL;
         break;
 
-      case JUMPC :
+      case INSTR_JUMPC :
         r1 = instr & 0x0F;
         TRACE("  JUMPC %d\n", r1);
         build_environment(prepare_arguments(r1));
@@ -229,7 +229,7 @@ void interpreter()
         reg1 = reg2 = NIL;
         break;
 
-      case JUMPS :
+      case INSTR_JUMPS :
         entry = (pc.c - program) + (instr & 0x0F);
         TRACE("  JUMPS %d\n", entry);
 
@@ -242,14 +242,14 @@ void interpreter()
         reg1 = NIL;
         break;
 
-      case BRSF :
+      case INSTR_BRSF :
         TRACE("  BRSF %d\n", instr & 0x0F);
         if (pop() == FALSE) {
           pc.c += (instr & 0x0F);
         }
         break;
 
-      case LDC :
+      case INSTR_LDC :
         r1 = ((instr & 0x0F) << 8) + NEXT_BYTE;
         TRACE("  LDC %d\n", r1);
         if (r1 < 3) {
@@ -263,9 +263,9 @@ void interpreter()
         }
         break;
 
-      case CALL: //  Call top-level procedure
+      case INSTR_CALL: //  Call top-level procedure
         switch (instr) {
-          case CALL :
+          case INSTR_CALL :
             entry = NEXT_SHORT;
             TRACE("  CALL %d\n", entry);
 
@@ -279,7 +279,7 @@ void interpreter()
             reg1 = NIL;
             break;
 
-          case JUMP : // Jump to top-level procedure
+          case INSTR_JUMP : // Jump to top-level procedure
             entry = NEXT_SHORT;
             TRACE("  JUMP %d\n", entry);
 
@@ -292,13 +292,13 @@ void interpreter()
             reg1 = NIL;
             break;
 
-          case BR :
+          case INSTR_BR :
             entry = NEXT_SHORT;
             TRACE("  BR %d\n", entry);
             pc.c = program + entry;
             break;
 
-          case BRF :
+          case INSTR_BRF :
             entry = NEXT_SHORT;
             TRACE("  BRF %d\n", entry);
             if (pop() == FALSE) {
@@ -306,7 +306,7 @@ void interpreter()
             }
             break;
 
-          case CLOS :
+          case INSTR_CLOS :
             entry = NEXT_SHORT;
             TRACE("  CLOS %d\n", entry);
 
@@ -321,7 +321,7 @@ void interpreter()
             reg1 = reg2 = reg3 = NIL;
             break;
 
-          case CALLR :
+          case INSTR_CALLR :
             entry = NEXT_BYTE;
             entry = (pc.c - program) + entry - 128;
 
@@ -337,7 +337,7 @@ void interpreter()
             reg1 = NIL;
             break;
 
-          case JUMPR :
+          case INSTR_JUMPR :
             entry = NEXT_BYTE;
             entry = (pc.c - program) + entry - 128;
 
@@ -352,14 +352,14 @@ void interpreter()
             reg1 = NIL;
             break;
 
-          case BRR :
+          case INSTR_BRR :
             entry = NEXT_BYTE;
             entry =  (pc.c - program) + entry - 128;
             TRACE("  BRR %d\n", entry);
             pc.c = program + entry;
             break;
 
-          case BRRF :
+          case INSTR_BRRF :
             entry = NEXT_BYTE;
             entry =  (pc.c - program) + entry - 128;
             TRACE("  BRRF %d\n", entry);
@@ -368,7 +368,7 @@ void interpreter()
             }
             break;
 
-          case CLOSR :
+          case INSTR_CLOSR :
             entry = NEXT_BYTE ;
             entry =  (pc.c - program) + entry - 128;
             TRACE("  CLOSR %d\n", entry);
@@ -384,7 +384,7 @@ void interpreter()
             reg1 = reg2 = reg3 = NIL;
             break;
 
-          case LD  :
+          case INSTR_LD  :
             r1 = NEXT_BYTE;
             TRACE("  LD %d\n", r1);
             reg1 = GLOBAL_GET(r1);
@@ -392,7 +392,7 @@ void interpreter()
             reg1 = NIL;
             break;
 
-          case ST :
+          case INSTR_ST :
             r1 = NEXT_BYTE;
             TRACE("  ST %d\n", r1);
             GLOBAL_SET(r1, pop());

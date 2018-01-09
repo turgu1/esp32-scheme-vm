@@ -240,7 +240,32 @@ typedef struct {
   };
 } cell;
 
+typedef union {
+            pair_part cons;
+    continuation_part continuation;
+         closure_part closure;
+          fixnum_part fixnum;
+          bignum_part bignum;
+          string_part string;
+         cstring_part cstring;
+          vector_part vector;
+          symbol_part symbol;
+} cell_data;
+
+typedef union {
+  struct {
+    unsigned int gc_mark : 1;
+    unsigned int gc_flip : 1;
+    unsigned int    type : 4;
+    unsigned int  user_1 : 1;
+    unsigned int  user_2 : 1;
+  };
+  uint8_t bits;
+} cell_flags;
+
 typedef cell * cell_ptr;
+typedef cell_data * cell_data_ptr;
+typedef cell_flags * cell_flags_ptr;
 
 /** Globals.
 
@@ -368,29 +393,29 @@ typedef cell * cell_ptr;
           10111111 iiiiiiii
   */
 
-#define LDCS1                      ((uint8_t) 0x00)
-#define LDCS2                      ((uint8_t) 0x10)
-#define LDSTK1                     ((uint8_t) 0x20)
-#define LDSTK2                     ((uint8_t) 0x30)
-#define LDS                        ((uint8_t) 0x40)
-#define STS                        ((uint8_t) 0x50)
-#define CALLC                      ((uint8_t) 0x60)
-#define JUMPC                      ((uint8_t) 0x70)
-#define JUMPS                      ((uint8_t) 0x80)
-#define BRSF                       ((uint8_t) 0x90)
-#define LDC                        ((uint8_t) 0xA0)
-#define CALL                       ((uint8_t) 0xB0)
-#define JUMP                       ((uint8_t) 0xB1)
-#define BR                         ((uint8_t) 0xB2)
-#define BRF                        ((uint8_t) 0xB3)
-#define CLOS                       ((uint8_t) 0xB4)
-#define CALLR                      ((uint8_t) 0xB5)
-#define JUMPR                      ((uint8_t) 0xB6)
-#define BRR                        ((uint8_t) 0xB7)
-#define BRRF                       ((uint8_t) 0xB8)
-#define CLOSR                      ((uint8_t) 0xB9)
-#define LD                         ((uint8_t) 0xBE)
-#define ST                         ((uint8_t) 0xBF)
+#define INSTR_LDCS1                ((uint8_t) 0x00)
+#define INSTR_LDCS2                ((uint8_t) 0x10)
+#define INSTR_LDSTK1               ((uint8_t) 0x20)
+#define INSTR_LDSTK2               ((uint8_t) 0x30)
+#define INSTR_LDS                  ((uint8_t) 0x40)
+#define INSTR_STS                  ((uint8_t) 0x50)
+#define INSTR_CALLC                ((uint8_t) 0x60)
+#define INSTR_JUMPC                ((uint8_t) 0x70)
+#define INSTR_JUMPS                ((uint8_t) 0x80)
+#define INSTR_BRSF                 ((uint8_t) 0x90)
+#define INSTR_LDC                  ((uint8_t) 0xA0)
+#define INSTR_CALL                 ((uint8_t) 0xB0)
+#define INSTR_JUMP                 ((uint8_t) 0xB1)
+#define INSTR_BR                   ((uint8_t) 0xB2)
+#define INSTR_BRF                  ((uint8_t) 0xB3)
+#define INSTR_CLOS                 ((uint8_t) 0xB4)
+#define INSTR_CALLR                ((uint8_t) 0xB5)
+#define INSTR_JUMPR                ((uint8_t) 0xB6)
+#define INSTR_BRR                  ((uint8_t) 0xB7)
+#define INSTR_BRRF                 ((uint8_t) 0xB8)
+#define INSTR_CLOSR                ((uint8_t) 0xB9)
+#define INSTR_LD                   ((uint8_t) 0xBE)
+#define INSTR_ST                   ((uint8_t) 0xBF)
 
 #define PRIMITIVE1                 ((uint8_t) 0xC0)
 #define PRIMITIVE2                 ((uint8_t) 0xD0)
@@ -412,15 +437,15 @@ typedef cell * cell_ptr;
 #define ROM_MAX_ADDR               ((IDX) 0xFE00)
 #define ROM_IDX(p)                 (p & 0x3FFF)
 
-#define RAM_IS_PAIR(p)             (ram_heap[p].type ==         CONS_TYPE)
-#define RAM_IS_CONTINUATION(p)     (ram_heap[p].type == CONTINUATION_TYPE)
-#define RAM_IS_CLOSURE(p)          (ram_heap[p].type ==      CLOSURE_TYPE)
-#define RAM_IS_FIXNUM(p)           (ram_heap[p].type ==       FIXNUM_TYPE)
-#define RAM_IS_BIGNUM(p)           (ram_heap[p].type ==       BIGNUM_TYPE)
-#define RAM_IS_STRING(p)           (ram_heap[p].type ==       STRING_TYPE)
-#define RAM_IS_CSTRING(p)          (ram_heap[p].type ==      CSTRING_TYPE)
-#define RAM_IS_VECTOR(p)           (ram_heap[p].type ==       VECTOR_TYPE)
-#define RAM_IS_SYMBOL(p)           (ram_heap[p].type ==       SYMBOL_TYPE)
+#define RAM_IS_PAIR(p)             (ram_heap_flags[p].type ==         CONS_TYPE)
+#define RAM_IS_CONTINUATION(p)     (ram_heap_flags[p].type == CONTINUATION_TYPE)
+#define RAM_IS_CLOSURE(p)          (ram_heap_flags[p].type ==      CLOSURE_TYPE)
+#define RAM_IS_FIXNUM(p)           (ram_heap_flags[p].type ==       FIXNUM_TYPE)
+#define RAM_IS_BIGNUM(p)           (ram_heap_flags[p].type ==       BIGNUM_TYPE)
+#define RAM_IS_STRING(p)           (ram_heap_flags[p].type ==       STRING_TYPE)
+#define RAM_IS_CSTRING(p)          (ram_heap_flags[p].type ==      CSTRING_TYPE)
+#define RAM_IS_VECTOR(p)           (ram_heap_flags[p].type ==       VECTOR_TYPE)
+#define RAM_IS_SYMBOL(p)           (ram_heap_flags[p].type ==       SYMBOL_TYPE)
 #define RAM_IS_NUMBER(p)           (RAM_IS_FIXNUM(p) || RAM_IS_BIGNUM(p))
 
 #define ROM_IS_PAIR(p)             (rom_heap[ROM_IDX(p)].type ==         CONS_TYPE)
@@ -437,68 +462,68 @@ typedef cell * cell_ptr;
 #define IN_RAM(p)                  (p >= reserved_cells_count) && (p < ram_heap_size)
 #define IN_ROM(p)                  (p >= ROM_START_ADDR) && (p < ROM_MAX_ADDR)
 
-#define RAM_GET_TYPE(p)            ram_heap[p].type
-#define RAM_SET_TYPE(p, t)         ram_heap[p].type = t
+#define RAM_GET_TYPE(p)            ram_heap_flags[p].type
+#define RAM_SET_TYPE(p, t)         ram_heap_flags[p].type = t
 
-#define RAM_GET_BITS(p)            ram_heap[p].bits
+#define RAM_GET_BITS(p)            ram_heap_flags[p].bits
 
-#define RAM_GET_CAR(p)             ram_heap[p].cons.car_p
-#define RAM_GET_CDR(p)             ram_heap[p].cons.cdr_p
+#define RAM_GET_CAR(p)             ram_heap_data[p].cons.car_p
+#define RAM_GET_CDR(p)             ram_heap_data[p].cons.cdr_p
 
-#define RAM_SET_CAR(p, v)          ram_heap[p].cons.car_p = v
-#define RAM_SET_CDR(p, v)          ram_heap[p].cons.cdr_p = v
+#define RAM_SET_CAR(p, v)          ram_heap_data[p].cons.car_p = v
+#define RAM_SET_CDR(p, v)          ram_heap_data[p].cons.cdr_p = v
 
 #define ROM_GET_CAR(p)             rom_heap[ROM_IDX(p)].cons.car_p
 #define ROM_GET_CDR(p)             rom_heap[ROM_IDX(p)].cons.cdr_p
 
-#define RAM_IS_MARKED(p)           (ram_heap[p].gc_mark == 1)
-#define RAM_IS_NOT_MARKED(p)       (ram_heap[p].gc_mark == 0)
-#define RAM_SET_MARK(p)            ram_heap[p].gc_mark = 1
-#define RAM_CLR_MARK(p)            ram_heap[p].gc_mark = 0
+#define RAM_IS_MARKED(p)           (ram_heap_flags[p].gc_mark == 1)
+#define RAM_IS_NOT_MARKED(p)       (ram_heap_flags[p].gc_mark == 0)
+#define RAM_SET_MARK(p)            ram_heap_flags[p].gc_mark = 1
+#define RAM_CLR_MARK(p)            ram_heap_flags[p].gc_mark = 0
 
-#define RAM_IS_FLIPPED(p)          (ram_heap[p].gc_flip == 1)
-#define RAM_SET_FLIP(p)            ram_heap[p].gc_flip = 1
-#define RAM_CLR_FLIP(p)            ram_heap[p].gc_flip = 0
+#define RAM_IS_FLIPPED(p)          (ram_heap_flags[p].gc_flip == 1)
+#define RAM_SET_FLIP(p)            ram_heap_flags[p].gc_flip = 1
+#define RAM_CLR_FLIP(p)            ram_heap_flags[p].gc_flip = 0
 
-#define RAM_IS_USER_1_SET(p)       (ram_heap[p].user_1 == 1)
-#define RAM_SET_USER_1(p)          ram_heap[p].user_1 = 1
-#define RAM_CLR_USER_1(p)          ram_heap[p].user_1 = 0
+#define RAM_IS_USER_1_SET(p)       (ram_heap_flags[p].user_1 == 1)
+#define RAM_SET_USER_1(p)          ram_heap_flags[p].user_1 = 1
+#define RAM_CLR_USER_1(p)          ram_heap_flags[p].user_1 = 0
 
-#define RAM_IS_USER_2_SET(p)       (ram_heap[p].user_2 == 1)
-#define RAM_SET_USER_2(p)          ram_heap[p].user_2 = 1
-#define RAM_CLR_USER_2(p)          ram_heap[p].user_2 = 0
+#define RAM_IS_USER_2_SET(p)       (ram_heap_flags[p].user_2 == 1)
+#define RAM_SET_USER_2(p)          ram_heap_flags[p].user_2 = 1
+#define RAM_CLR_USER_2(p)          ram_heap_flags[p].user_2 = 0
 
-#define HAS_NO_RIGHT_LINK(p)       ((ram_heap[p].bits & 0x30) != 0)
-#define HAS_RIGHT_LINK(p)          ((ram_heap[p].bits & 0x30) == 0)
-#define HAS_LEFT_LINK(p)           ((ram_heap[p].bits & 0x20) == 0)
+#define HAS_NO_RIGHT_LINK(p)       ((ram_heap_flags[p].bits & 0x30) != 0)
+#define HAS_RIGHT_LINK(p)          ((ram_heap_flags[p].bits & 0x30) == 0)
+#define HAS_LEFT_LINK(p)           ((ram_heap_flags[p].bits & 0x20) == 0)
 
 // Fixnum
 
-#define RAM_GET_FIXNUM_VALUE(p)    ram_heap[p].fixnum.value
+#define RAM_GET_FIXNUM_VALUE(p)    ram_heap_data[p].fixnum.value
 #define ROM_GET_FIXNUM_VALUE(p)    rom_heap[ROM_IDX(p)].fixnum.value
 
-#define RAM_SET_FIXNUM_VALUE(p, v) ram_heap[p].fixnum.value = v
+#define RAM_SET_FIXNUM_VALUE(p, v) ram_heap_data[p].fixnum.value = v
 
 // Bignum
 
-#define RAM_GET_BIGNUM_VALUE(p)    ram_heap[p].bignum.num_part
+#define RAM_GET_BIGNUM_VALUE(p)    ram_heap_data[p].bignum.num_part
 #define ROM_GET_BIGNUM_VALUE(p)    rom_heap[ROM_IDX(p)].bignum.num_part
 
-#define RAM_GET_BIGNUM_HI(p)       ram_heap[p].bignum.next_p
+#define RAM_GET_BIGNUM_HI(p)       ram_heap_data[p].bignum.next_p
 #define ROM_GET_BIGNUM_HI(p)       rom_heap[ROM_IDX(p)].bignum.next_p
 
-#define RAM_SET_BIGNUM_HI(p,h)     ram_heap[p].bignum.next_p = h
-#define RAM_SET_BIGNUM_VALUE(p,v)  ram_heap[p].bignum.num_part = v
+#define RAM_SET_BIGNUM_HI(p,h)     ram_heap_data[p].bignum.next_p = h
+#define RAM_SET_BIGNUM_VALUE(p,v)  ram_heap_data[p].bignum.num_part = v
 
 // Vector
 
-#define RAM_GET_VECTOR_LENGTH(p)   ram_heap[p].vector.length
+#define RAM_GET_VECTOR_LENGTH(p)   ram_heap_data[p].vector.length
 #define ROM_GET_VECTOR_LENGTH(p)   rom_heap[ROM_IDX(p)].vector.length
 
-#define RAM_SET_VECTOR_LENGTH(p, v) ram_heap[p].vector.length = v
+#define RAM_SET_VECTOR_LENGTH(p, v) ram_heap_data[p].vector.length = v
 
-#define RAM_SET_VECTOR_START(p, v) ram_heap[p].vector.start_p = v
-#define RAM_GET_VECTOR_START(p)    ram_heap[p].vector.start_p
+#define RAM_SET_VECTOR_START(p, v) ram_heap_data[p].vector.start_p = v
+#define RAM_GET_VECTOR_START(p)    ram_heap_data[p].vector.start_p
 #define ROM_GET_VECTOR_START(p)    rom_heap[ROM_IDX(p)].vector.start_p
 
 #define VECTOR_GET_LENGTH(p)       vector_heap[p].vector.length
@@ -518,28 +543,28 @@ typedef cell * cell_ptr;
 
 // String
 
-#define RAM_STRING_GET_CHARS(p)    ram_heap[p].string.chars_p
+#define RAM_STRING_GET_CHARS(p)    ram_heap_data[p].string.chars_p
 #define ROM_STRING_GET_CHARS(p)    rom_heap[ROM_IDX(p)].string.chars_p
 
-#define RAM_STRING_SET_CHARS(p, v) ram_heap[p].string.chars_p = v
-#define RAM_STRING_CLR_UNUSED(p)   ram_heap[p].string.unused = 0
+#define RAM_STRING_SET_CHARS(p, v) ram_heap_data[p].string.chars_p = v
+#define RAM_STRING_CLR_UNUSED(p)   ram_heap_data[p].string.unused = 0
 
 
 // Continuation
 
-#define RAM_GET_CONT_CLOSURE(p)    ram_heap[p].continuation.closure_p
-#define RAM_GET_CONT_PARENT(p)     ram_heap[p].continuation.parent_p
+#define RAM_GET_CONT_CLOSURE(p)    ram_heap_data[p].continuation.closure_p
+#define RAM_GET_CONT_PARENT(p)     ram_heap_data[p].continuation.parent_p
 
-#define RAM_SET_CONT_CLOSURE(p, v) ram_heap[p].continuation.closure_p = v
-#define RAM_SET_CONT_PARENT(p,v)   ram_heap[p].continuation.parent_p = v
+#define RAM_SET_CONT_CLOSURE(p, v) ram_heap_data[p].continuation.closure_p = v
+#define RAM_SET_CONT_PARENT(p,v)   ram_heap_data[p].continuation.parent_p = v
 
 // Closure
 
-#define RAM_GET_CLOSURE_ENV(p)            ram_heap[p].closure.environment_p
-#define RAM_GET_CLOSURE_ENTRY_POINT(p)    ram_heap[p].closure.entry_point_p
+#define RAM_GET_CLOSURE_ENV(p)            ram_heap_data[p].closure.environment_p
+#define RAM_GET_CLOSURE_ENTRY_POINT(p)    ram_heap_data[p].closure.entry_point_p
 
-#define RAM_SET_CLOSURE_ENV(p, v)         ram_heap[p].closure.environment_p = v
-#define RAM_SET_CLOSURE_ENTRY_POINT(p, v) ram_heap[p].closure.entry_point_p = v
+#define RAM_SET_CLOSURE_ENV(p, v)         ram_heap_data[p].closure.environment_p = v
+#define RAM_SET_CLOSURE_ENTRY_POINT(p, v) ram_heap_data[p].closure.entry_point_p = v
 
 // Globals
 
@@ -570,6 +595,10 @@ typedef cell * cell_ptr;
      garbage collector could become mixed up if those registers contain values
      that are not related to the address space and encoded values managed by
      the virtual machine.
+
+  3. Never directly access vm union and struct defined in file vm-arch.h. Use
+     the macro defined in that same file to access those structure. This will
+     ensure coherence on changes made to the vm internals.
 
   In the preceeding paragraphs, global values are the ones generated by the
   compiler and located in the RAM heap starting at index 0 (two global
@@ -610,7 +639,8 @@ PUBLIC uint8_t reserved_cells_count;
 
 PUBLIC IDX vector_heap_size;
 
-PUBLIC cell_ptr ram_heap;   // read/write
+PUBLIC cell_data_ptr  ram_heap_data;   // read/write
+PUBLIC cell_flags_ptr ram_heap_flags; // read/write
 PUBLIC cell_p   ram_heap_end;
 PUBLIC IDX      ram_heap_size; // as a number of cells
 
