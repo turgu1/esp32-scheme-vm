@@ -47,7 +47,7 @@ December 2017
 
   * Test test Test **All Scheme tests completed, Unit tests at 50%**
   * Implement bignums (no limit integers) **OK**
-  * ESP32 ESP-DIF integration **OK**
+  * ESP32 ESP-IDF integration **OK**
   * Network primitives and suspend/resume capabilities
   * Implement some primitives to get access to the hardware sensors and IOT interfaces
   * Produce an easy compile-test-run makefile context for picobit application development
@@ -86,7 +86,7 @@ December 2017
 
 ## Installation
 
-Here are the informations to get a development environment that will allow
+Here are the steps to get a development environment that will allow
 for both host (linux or OSX) and ESP32 scheme programming with this PicoBit
 implementation (A Microsoft Windows context of development will eventually be
 documented):
@@ -114,7 +114,7 @@ documented):
       $ git clone https://github.com/turgu1/esp32-scheme-vm.git
     ```
 
-3. Compile the host version of the compiler, picobit-vm and hex2bin program.
+3. Compile the host version of the compiler, picobit-vm and hex2bin programs.
 
   * Do the following commands in a terminal screen:
 
@@ -136,7 +136,7 @@ Fibonacci suite. You can compile it and run it with the following commands:
     ```
 
 5. Compile and run the program on a ESP32 platform. For this, you will need
-an ESP32 electronic circuit hooked to you computer through an USB serial port.
+an ESP32 electronic circuit **hooked to you computer through an USB serial port**.
 The author uses a ESP-WROOM-32 development board (Nodemcu) similar to the
 one offered by [amazon](https://www.amazon.com/HiLetgo-ESP-WROOM-32-Development-Microcontroller-Integrated/dp/B0718T232Z/ref=sr_1_1?ie=UTF8&qid=1515534535&sr=8-1&keywords=esp32+nodemcu). The example here will use the
 fibo.scm program compiled in the preceeding step.
