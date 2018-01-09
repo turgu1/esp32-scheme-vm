@@ -10,6 +10,9 @@ compiled/
 ehthumbs.db
 Thumbs.db
 
+sdkconfig
+sdkconfig.old
+
 test.hex
 test.scm
 test.bin
