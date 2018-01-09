@@ -152,7 +152,7 @@ fibo.scm program compiled in the preceeding step.
      version of it through the following command:
 
      ```
-       $ hex2bin fibo.hex fibo.bin
+       $ ./h2b fibo.hex fibo.bin
      ```
 
    * The resulting fibo.bin file must be made available to picobit-vm as it

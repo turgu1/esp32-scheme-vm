@@ -4,7 +4,7 @@
 CC          := gcc
 
 #The Target Binary Program
-TARGET      := scheme
+TARGET      := picobit-vm
 
 #The Directories, Source, Includes, Objects, Binary and Resources
 SRCDIR      := main
