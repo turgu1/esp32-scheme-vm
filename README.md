@@ -4,7 +4,7 @@ A Scheme interpreter to be used both on a linux based host and on an ESP32 IOT p
 
 Early piece of code. This is work in progress and is still under heavy development.
 At this point in time, programs are able to be run on both Linux, OSX and ESP32
-platforms. Please look at the Todo list below for more information to the state
+platforms. Please look at the Todo list below for more information about the state
 of development.
 
 This is a port of the PicoBit Scheme system you can find at the following
@@ -17,7 +17,7 @@ from scratch, using as much as possible from the PicoBit vm implementation.
 A major aspect of this decision is related to the relocation of the code space
 constants, ram, rom and vector heaps to be managed through C vector such that
 addresses calculation is done through GCC instead of being manipulated manualy
-through the code. Indexing RAM heap from index 0, requires the relocation of
+through the code. Indexing RAM heap from index 0 requires the relocation of
 ROM space and small numbers/booleans constants in the higher portion of the
 address space.
 
