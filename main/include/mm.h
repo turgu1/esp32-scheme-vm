@@ -71,7 +71,7 @@ PUBLIC void   unmark_ram();
   PUBLIC bool is_free(cell_p p);
 #endif
 
-#if STATISTICS && COMPUTER
+#if STATISTICS
   PUBLIC double max_gc_duration;
 #endif
 

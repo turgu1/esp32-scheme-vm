@@ -2,7 +2,10 @@
 
 A Scheme interpreter to be used both on a linux based host and on an ESP32 IOT processor.
 
-**Very** early piece of code. This is work in progress and is not ready for use.
+Early piece of code. This is work in progress and is still under heavy development.
+At this point in time, programs are able to be run on both Linux, OSX and ESP32
+platforms. Please look at the Todo list below for more information to the state
+of development.
 
 This is a port of the PicoBit Scheme system you can find at the following
 [location](https://github.com/stamourv/picobit).
@@ -12,7 +15,8 @@ the way the scheme vm operate. As such, I decided to develop a new interpreter
 from scratch, using as much as possible from the PicoBit vm implementation.
 
 A major aspect of this decision is related to the relocation of the code space
-constants, ram, rom and vector heaps to be managed through C vector such that  addresses calculation is done through GCC instead of being manipulated manualy
+constants, ram, rom and vector heaps to be managed through C vector such that
+addresses calculation is done through GCC instead of being manipulated manualy
 through the code. Indexing RAM heap from index 0, requires the relocation of
 ROM space and small numbers/booleans constants in the higher portion of the
 address space.
@@ -43,7 +47,10 @@ December 2017
 
   * Test test Test **All Scheme tests completed, Unit tests at 50%**
   * Implement bignums (no limit integers) **OK**
-  * ESP32 ESP-DIF integration
+  * ESP32 ESP-DIF integration **OK**
+  * Network primitives and suspend/resume capabilities
+  * Implement some primitives to get access to the hardware sensors and IOT interfaces
+  * Produce an easy compile-test-run makefile context for picobit application development
 
 2. Second priorities
 
@@ -76,6 +83,83 @@ December 2017
   * Enlarge the global space (from the maximum of 256 global values)
   * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
   * Add version numbering in code (Major + Minor numbers)
+
+## Installation
+
+Here are the informations to get a development environment that will allow
+for both host (linux or OSX) and ESP32 scheme programming with this PicoBit
+implementation (A Microsoft Windows context of development will eventually be
+documented):
+
+1. Install the development tools:
+
+  * ESP-IDF - As per the ESP-IDF Installation guidelines at that
+    [location](http://esp-idf.readthedocs.io/en/latest/get-started/linux-setup.html)
+    for Linux, or that
+    [location](http://esp-idf.readthedocs.io/en/latest/get-started/macos-setup.html) for OSX.
+
+  * GCC and other tools - As per your OS environment. The following products
+    are required: **GCC, gawk, git, doxygen**
+
+  * DrRacket from that [location](http://racket-lang.org/).
+
+2. Download the esp32-scheme-vm from github
+
+  * From a terminal screen, goto a folder into which this repository will
+    be retrieved in.
+
+  * execute the following command:
+
+      $ git clone https://github.com/turgu1/esp32-scheme-vm.git
+
+3. Compile the host version of the compiler, picobit-vm and hex2bin program.
+
+  * Do the following commands in a terminal screen:
+
+      $ cd esp32-scheme-vm
+      $ make
+      $ cd hex2bin
+      $ make
+      $ cd ..
+
+4. Prepare your scheme program. A demonstration program named "fibo.scm" is
+supplied that compute the Fibonacci value for the 200 first numbers of the
+Fibonacci suite. You can compile it and run it with the following commands:
+
+      $ ./picobit fibo.scm
+      $ ./picobit-vm fibo.hex
+
+5. Compile and run the program on a ESP32 platform. For this, you will need
+an ESP32 electronic circuit hooked to you computer through an USB serial port.
+The author uses a ESP-WROOM-32 development board (Nodemcu) similar to the
+one offered by [amazon](https://www.amazon.com/HiLetgo-ESP-WROOM-32-Development-Microcontroller-Integrated/dp/B0718T232Z/ref=sr_1_1?ie=UTF8&qid=1515534535&sr=8-1&keywords=esp32+nodemcu). The example here will use the
+fibo.scm program compiled in the preceeding step.
+
+   * Configure ESP-IDF to identify the USB port on which the development board is
+     connected. Use the following command:
+
+       $ make -f Makefile.esp32 menuconfig
+
+   * The application fibo.scm is already compiled. We need to create a binary
+     version of it through the following command:
+
+       $ hex2bin fibo.hex fibo.bin
+
+   * The resulting fibo.bin file must be made available to picobit-vm as it
+     will be integrated with the virtual machine code and pushed on the ESP32:
+
+       $ cp fibo.bin main/program.bin
+
+   * Now, we compile and burn the code on the ESP32. The first time picobit-vm
+     will be built for the ESP32, it will take sometime as the entire ESP-IDF
+     environment will also be compiled:
+
+       $ make -f Makefile.esp32 flash
+
+   * At this point, the program is now on the ESP32 platform. You can monitor
+     the resulting ouput using the following command:
+
+       $ make -f Makefile.esp32 monitor
 
 # Original PicoBit Readme file
 

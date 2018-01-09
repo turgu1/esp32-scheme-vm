@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-#if STATISTICS && COMPUTER
+#if STATISTICS
   #include <time.h>
 #endif
 
@@ -13,7 +13,7 @@
 #include "mm.h"
 
 #if DEBUGGING
-uint16_t free_allocated_count;
+  uint16_t free_allocated_count;
 #endif
 
 extern void show(cell_p p);
@@ -236,19 +236,16 @@ void return_to_free_list(cell_p p)
 
 void mm_gc()
 {
-  gc_call_counter++;
-
   INFO_MSG("Garbage collection Started");
 
   #if STATISTICS
     used_cells_count = 0;
+    gc_call_counter++;
 
-    #if COMPUTER
-      double gc_duration;
-      clock_t start_time;
-      clock_t end_time;
-      start_time = clock();
-    #endif
+    double gc_duration;
+    clock_t start_time;
+    clock_t end_time;
+    start_time = clock();
   #endif
 
   for (uint8_t i = 0; i < reserved_cells_count; i++) mm_mark(i);
@@ -264,7 +261,7 @@ void mm_gc()
 
   mm_sweep();
 
-  #if STATISTICS && COMPUTER
+  #if STATISTICS
     end_time = clock();
     gc_duration = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
     if (gc_duration > max_gc_duration) {
@@ -408,6 +405,7 @@ bool mm_init(uint8_t * program)
   }
 
   global_count = program[3];
+
   reserved_cells_count = (global_count + 1) >> 1;
 
   #if STATISTICS
@@ -429,6 +427,16 @@ bool mm_init(uint8_t * program)
 
   #else // ESP32
     // Todo: Memory Initialisation code for ESP32
+
+    uint32_t byte_size = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+
+    ram_heap_size = byte_size / sizeof(cell_data);
+    if ((ram_heap_data = (cell_data_ptr) heap_caps_calloc(ram_heap_size, sizeof(cell_data), MALLOC_CAP_8BIT))  == NULL) return false;
+    if ((ram_heap_flags = (cell_flags_ptr) heap_caps_calloc(ram_heap_size, sizeof(cell_flags), MALLOC_CAP_8BIT))  == NULL) return false;
+
+    byte_size = heap_caps_get_largest_free_block(MALLOC_CAP_8BIT);
+    vector_heap_size = byte_size / sizeof(cell);
+    if ((vector_heap = (cell_ptr) heap_caps_calloc(vector_heap_size, sizeof(cell), MALLOC_CAP_8BIT)) == NULL) return false;
   #endif
 
   rom_heap      = (cell_ptr) &program[4];

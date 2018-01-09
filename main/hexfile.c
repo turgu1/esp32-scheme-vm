@@ -1,4 +1,7 @@
 #include "esp32-scheme-vm.h"
+
+#if COMPUTER
+
 #include "vm-arch.h"
 
 #include "testing.h"
@@ -137,3 +140,5 @@ void hexfile_tests()
   }
 }
 #endif
+
+#endif // COMPUTER

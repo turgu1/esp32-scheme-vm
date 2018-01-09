@@ -14,19 +14,6 @@ extern void terminate();
   #error "Not a supported platform"
 #endif
 
-#if ESP32
-  #include "freertos/FreeRTOS.h"
-  #include "freertos/task.h"
-  #include "esp_system.h"
-  #include "esp_spi_flash.h"
-  #include "esp_heap_caps.h"
-
-  #define STATS     0
-  #define DEBUGGING 0
-  #define TRACING   0
-  #define TESTS     0
-#endif
-
 #ifdef COMPUTER
   #include <stdint.h>
   #include <stdlib.h>
@@ -40,6 +27,20 @@ extern void terminate();
   #define DEBUGGING 1
   #define TRACING   1
   #define TESTS     1
+#endif
+
+#if ESP32
+  #include "freertos/FreeRTOS.h"
+  #include "freertos/task.h"
+  #include "esp_system.h"
+  #include "esp_spi_flash.h"
+  #include "esp_heap_caps.h"
+
+  #define STATS     0
+  #define DEBUGGING 1
+  #define TRACING   0
+  #define TESTS     0
+  #define VERBOSE   true
 #endif
 
 #define CONFIG_BIGNUM_LONG 1
