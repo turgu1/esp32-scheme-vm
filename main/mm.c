@@ -115,8 +115,8 @@ void mm_mark(cell_p p)
       }
     }
 
-    // Here, current is completed. We go up until we find a node
-    // for which a right link was not processed or has no right
+    // Here, current left branch of the subtree is completed. We go up until we
+    // find a node for which a right link was not processed or has no right
     // link.
     while ((prev < ram_heap_end) && RAM_IS_FLIPPED(prev)) {
       RAM_CLR_FLIP(prev);
@@ -136,7 +136,7 @@ void mm_mark(cell_p p)
       RAM_SET_CDR(prev, next);
     }
     else {
-      // We go up util a node with a right link is detected
+      // We go up util a node with a right link or top of the tree is detected
       while ((prev < ram_heap_end) && HAS_NO_RIGHT_LINK(prev)) {
         next = RAM_GET_CAR(prev);
         RAM_SET_CAR(prev, current);
@@ -152,11 +152,11 @@ void mm_mark(cell_p p)
 #if DEBUGGING
   void unmark_ram()
   {
-    cell_flags_ptr fp = &ram_heap_flags[ram_heap_end];
+    cell_p p = ram_heap_end - 1;
 
-    while (--fp >= ram_heap_flags) {
-      fp->gc_mark = 0;
-    }
+    do {
+      RAM_CLR_MARK(p);
+    } while (p-- > 0);
   }
 
   bool is_free(cell_p p)
@@ -182,23 +182,19 @@ PRIVATE void mm_sweep()
     free_cells_count = 0;
   #endif
 
-  cell_p          p = ram_heap_end - 1;
-  cell_flags_ptr fp = &ram_heap_flags[p];
-  cell_data_ptr  dp = &ram_heap_data[p];
+  cell_p p = ram_heap_end - 1;
 
   // Don't forget: p cannot be a negative number...
   do {
-    if (fp->gc_mark == 1) {
-      (fp--)->gc_mark = 0;
-      dp--;
+    if (RAM_IS_MARKED(p)) {
+      RAM_CLR_MARK(p);
     }
     else {
       if (RAM_IS_VECTOR(p)) {
         VECTOR_SET_FREE(RAM_GET_VECTOR_START(p) - 1);
+        RAM_SET_TYPE(p, CONS_TYPE);
       }
-      //pp->type = CONS_TYPE;
-      (dp--)->cons.cdr_p = free_cells;
-      fp--;
+      RAM_SET_CDR(p, free_cells);
       free_cells = p;
 
       #if STATISTICS
@@ -214,7 +210,7 @@ PRIVATE void mm_sweep()
   // Reset mark bits in the globals area
   if (reserved_cells_count > 0) {
     do {
-      (fp--)->gc_mark = 0;
+      RAM_CLR_MARK(p);
     } while (p-- > 0); // Last loop will have p = 0
   }
 }
