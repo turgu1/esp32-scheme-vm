@@ -1,5 +1,5 @@
 PROJECT_NAME := picobit-vm
 
-include $(IDF_PATH)/make/project.mk
+BUILD_DIR_BASE := ./build-esp32
 
-$(PROJECT_PATH)/build-esp32
+include $(IDF_PATH)/make/project.mk

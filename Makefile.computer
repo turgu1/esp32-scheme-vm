@@ -7,8 +7,8 @@ CC          := gcc
 TARGET      := scheme
 
 #The Directories, Source, Includes, Objects, Binary and Resources
-SRCDIR      := src
-INCDIR      := src/include
+SRCDIR      := main
+INCDIR      := main/include
 BUILDDIR    := obj
 TARGETDIR   := bin
 SRCEXT      := c
