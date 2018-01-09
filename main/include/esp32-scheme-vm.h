@@ -6,7 +6,7 @@
 
 extern void terminate();
 
-#if __linux__ || __OSX__
+#if __linux__ || __APPLE__
   #define COMPUTER 1
 #elif ESP_PLATFORM
   #define ESP32 1
@@ -20,6 +20,11 @@ extern void terminate();
   #include "esp_system.h"
   #include "esp_spi_flash.h"
   #include "esp_heap_caps.h"
+
+  #define STATS     0
+  #define DEBUGGING 0
+  #define TRACING   0
+  #define TESTS     0
 #endif
 
 #ifdef COMPUTER
@@ -30,12 +35,12 @@ extern void terminate();
   #include <string.h>
 
   typedef enum { false, true } bool;
-#endif
 
-#define STATS     1
-#define DEBUGGING 1
-#define TRACING   1
-#define TESTS     1
+  #define STATS     1
+  #define DEBUGGING 1
+  #define TRACING   1
+  #define TESTS     1
+#endif
 
 #define CONFIG_BIGNUM_LONG 1
 
@@ -59,7 +64,7 @@ extern void terminate();
   #define    INFO(a, b)   if (verbose) { fprintf(stderr, "\nINFO - In %s: %s.\n", a, b); }
 
   #define TYPE_ERROR(proc, exp) FATAL(proc, "Expecting \"" exp "\"")
-  #define EXPECT(test, proc, exp) { if (!(test)) { fprintf(stderr, "\nAt [%ld]: ", last_pc.c - program); TYPE_ERROR(proc, exp); } }
+  #define EXPECT(test, proc, exp) { if (!(test)) { fprintf(stderr, "\nAt [%p]: ", (void *)(last_pc.c - program)); TYPE_ERROR(proc, exp); } }
   #define MARK(c) { if (verbose) { fputc(c, stderr); fflush(stderr); } }
 #else
   #define   FATAL_MSG(format, ...) terminate()

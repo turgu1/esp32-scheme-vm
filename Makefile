@@ -77,9 +77,9 @@ primitive-gen = gawk -f scripts/scanner.awk -f scripts/primitive-$(1).awk .primi
 		gcc -E -DNO_PRIMITIVE_EXPAND $(CFLAGS) $(INC) \
 			$$object -o - >>$@; \
 	done
-	$(call primitive-gen,headergen,inc/gen.primitives.h)
+	$(call primitive-gen,headergen,main/include/gen.primitives.h)
 	$(call primitive-gen,schemegen,compiler/gen.primitives.rkt)
-	$(call primitive-gen,dispatchgen,inc/gen.dispatch.h)
+	$(call primitive-gen,dispatchgen,main/include/gen.dispatch.h)
 
 compiler:
 	raco make compiler/picobit.rkt
