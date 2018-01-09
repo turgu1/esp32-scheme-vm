@@ -110,24 +110,30 @@ documented):
 
   * execute the following command:
 
+    ```
       $ git clone https://github.com/turgu1/esp32-scheme-vm.git
+    ```
 
 3. Compile the host version of the compiler, picobit-vm and hex2bin program.
 
   * Do the following commands in a terminal screen:
 
+    ```
       $ cd esp32-scheme-vm
       $ make
       $ cd hex2bin
       $ make
       $ cd ..
+    ```
 
 4. Prepare your scheme program. A demonstration program named "fibo.scm" is
 supplied that compute the Fibonacci value for the 200 first numbers of the
 Fibonacci suite. You can compile it and run it with the following commands:
 
+    ```
       $ ./picobit fibo.scm
       $ ./picobit-vm fibo.hex
+    ```
 
 5. Compile and run the program on a ESP32 platform. For this, you will need
 an ESP32 electronic circuit hooked to you computer through an USB serial port.
@@ -138,28 +144,38 @@ fibo.scm program compiled in the preceeding step.
    * Configure ESP-IDF to identify the USB port on which the development board is
      connected. Use the following command:
 
+     ```
        $ make -f Makefile.esp32 menuconfig
+     ```
 
    * The application fibo.scm is already compiled. We need to create a binary
      version of it through the following command:
 
+     ```
        $ hex2bin fibo.hex fibo.bin
+     ```
 
    * The resulting fibo.bin file must be made available to picobit-vm as it
      will be integrated with the virtual machine code and pushed on the ESP32:
 
+     ```
        $ cp fibo.bin main/program.bin
+     ```
 
    * Now, we compile and burn the code on the ESP32. The first time picobit-vm
      will be built for the ESP32, it will take sometime as the entire ESP-IDF
      environment will also be compiled:
 
+     ```
        $ make -f Makefile.esp32 flash
+     ```
 
    * At this point, the program is now on the ESP32 platform. You can monitor
      the resulting ouput using the following command:
 
-       $ make -f Makefile.esp32 monitor
+     ```
+     $ make -f Makefile.esp32 monitor
+     ```
 
 # Original PicoBit Readme file
 
