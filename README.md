@@ -45,44 +45,44 @@ December 2017
 
 1. As First priorities
 
-  * Test test Test **All Scheme tests completed, Unit tests at 50%**
-  * Implement bignums (no limit integers) **OK**
-  * ESP32 ESP-IDF integration **OK**
-  * Network primitives and suspend/resume capabilities
-  * Implement some primitives to get access to the hardware sensors and IOT interfaces
-  * Produce an easy compile-test-run makefile context for picobit application development
+   * Test test Test **All Scheme tests completed, Unit tests at 50%**
+   * Implement bignums (no limit integers) **OK**
+   * ESP32 ESP-IDF integration **OK**
+   * Network primitives and suspend/resume capabilities
+   * Implement some primitives to get access to the hardware sensors and IOT interfaces
+   * Produce an easy compile-test-run makefile context for picobit application development
 
 2. Second priorities
 
-  * Load mechanism through the NET for ESP32
-  * Primitives development and integration on the ESP32 for IOT I/O and networking
-  * Documentation **At 30%**
-  * Implement 32 bits Fixnums
-  * Enlarge the global space (from the maximum of 256 global values)
-  * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
-  * Version numbering
+   * Load mechanism through the NET for ESP32
+   * Primitives development and integration on the ESP32 for IOT I/O and networking
+   * Documentation **At 30%**
+   * Implement 32 bits Fixnums
+   * Enlarge the global space (from the maximum of 256 global values)
+   * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
+   * Version numbering
 
 3. Third priorities
 
-  * cell separation of flags and pointers to get pointer alignment on 16
-    and 32 bits address boundaries
+   * cell separation of flags and pointers to get pointer alignment on 16
+     and 32 bits address boundaries
 
 ## Todo for the compiler
 
 1. As first priorities to get something working with the interpreter
 
-  * Cells formatting on 5 bytes on constants rom-space, not 4 **OK**
-  * Little-Endian **OK**
-  * ROM Heap space (for constants) start at virtual address 0xE000 **OK**
-  * Code address space starts at 0x0000, not x8000 **OK**
-  * Change coding of small integers, FALSE, TRUE and () **OK**
+   * Cells formatting on 5 bytes on constants rom-space, not 4 **OK**
+   * Little-Endian **OK**
+   * ROM Heap space (for constants) start at virtual address 0xE000 **OK**
+   * Code address space starts at 0x0000, not x8000 **OK**
+   * Change coding of small integers, FALSE, TRUE and () **OK**
 
 2. Second priorities
 
-  * New 32 bits Fixnums
-  * Enlarge the global space (from the maximum of 256 global values)
-  * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
-  * Add version numbering in code (Major + Minor numbers)
+   * New 32 bits Fixnums
+   * Enlarge the global space (from the maximum of 256 global values)
+   * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
+   * Add version numbering in code (Major + Minor numbers)
 
 ## Installation
 
@@ -93,22 +93,22 @@ documented):
 
 1. Install the development tools:
 
-  * ESP-IDF - As per the ESP-IDF Installation guidelines at that
+   * ESP-IDF - As per the ESP-IDF Installation guidelines at that
     [location](http://esp-idf.readthedocs.io/en/latest/get-started/linux-setup.html)
-    for Linux, or that
-    [location](http://esp-idf.readthedocs.io/en/latest/get-started/macos-setup.html) for OSX.
+     for Linux, or that
+     [location](http://esp-idf.readthedocs.io/en/latest/get-started/macos-setup.html) for OSX.
 
-  * GCC and other tools - As per your OS environment. The following products
-    are required: **GCC, gawk, git, doxygen**
+   * GCC and other tools - As per your OS environment. The following products
+     are required: **GCC, gawk, git, doxygen**
 
-  * DrRacket from that [location](http://racket-lang.org/).
+   * DrRacket from that [location](http://racket-lang.org/).
 
 2. Download the esp32-scheme-vm from github
 
-  * From a terminal screen, goto a folder into which this repository will
-    be retrieved in.
+   * From a terminal screen, goto a folder into which this repository will
+     be retrieved in.
 
-  * execute the following command:
+   * execute the following command:
 
     ```
       $ git clone https://github.com/turgu1/esp32-scheme-vm.git
@@ -116,7 +116,7 @@ documented):
 
 3. Compile the host version of the compiler, picobit-vm and hex2bin programs.
 
-  * Do the following commands in a terminal screen:
+   * Do the following commands in a terminal screen:
 
     ```
       $ cd esp32-scheme-vm
