@@ -1,7 +1,7 @@
 ;; bitwise and tests
 
 (displayln (= (bitwise-and #xf0 #x1f) #x10))
-(displayln (= (bitwise-and #x30 #xE1) #xC0))
+(displayln (= (bitwise-and #x30 #xE1) #x20))
 (displayln (= (bitwise-and #x00 #x05) #x00))
 (displayln (= (bitwise-and #xFF #xFF) #xFF))
 (displayln (= (bitwise-and #x00 #x00) #x00))

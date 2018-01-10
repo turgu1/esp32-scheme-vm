@@ -12,6 +12,7 @@
   The Virtual Machine definition is composed of the following elements:
 
     Cells definitions
+    Memory organisation
     Globals
     Standard constants
     VM Registers
@@ -19,23 +20,26 @@
 
  */
 
-/** Cells Definitions.
+/**
 
-  Every cell is 40 bits long (5 bytes). To get proper memory compaction for the
+Cells Definitions.
+
+  Every cell is 40 bits long (5 bytes): Two 16 bits fields for values and one 8 bits
+  field for flags and type information. To get proper memory compaction for the
   structure defining a cell, the following option must be used for gcc:
 
      -fpack-struct=1
 
   It is defined as a pragma in file inc/esp32-scheme-vm.h as follow:
 
-    #pragma pack(1)
+     #pragma pack(1)
 
   On the ESP32, adresses misalignement of 16 and 32 bits values don't seems to
-  create any issue on the performance of the code. At least sequential RAM
-  access runs at the same speed even when 16 bits words are accessed, aligned
-  or not.
-
-  ToDo: Random access remains to be checked
+  create any issue on the performance of the code. In any case, RAM heap cells are
+  splits in two separate vectors: ram_heap_data and ram_heap_flags. Each entry in
+  the ram_heap_data vector is 4 bytes long. Each entry in the ram_heap_flasg is 1
+  byte. As the ESP32 ram memory is not continuous, this arrangement will help in
+  having the largest amount of cells for the heap.
 
   The address space of the virtual heap cannot go beyond (64k * 5). To address
   64K cells, we need 16 bits (2ˆ16 = 64k).
@@ -149,6 +153,44 @@
       +----+------+----+---------------+----------------+
          2     4     2        16               16
 
+ Memory organisation
+
+  The ESP32 possesses 520 Kbytes of RAM. This memory space offers interesting
+  opportunities for running substantial Scheme programs, compared to other 8
+  bits cpus. However, as this space is not contiguous, it requires some
+  flexibility to organise the memory requirements for a scheme interpreter.
+
+  Splitting ram heap cells in two parts (data and flags), at this point in
+  time, we are able to run using 42 K ram heap cells (~210 Kbytes) and 60 Kbytes
+  for the u8vector space.
+
+  A Scheme program is composed of code, constants, global variables, a heap for
+  dynamically created data and contiguous space for byte vectors.
+
+  Ram memory is organized to receive the following chunks:
+
+    data heap as two C vectors: flags and data
+    byte vectors content as one C vector
+    global variables, put at the beginning of the data heap
+
+  The picobit binary program, once it as been compiled, is merged with the
+  interpreter machine code before it is burn on the ESP32. It is then possible
+  to have up to 64 KBytes of scheme code and constants, the chip allowing far more
+  coding space. The 64 KBytes of scheme code is a compromise to keep the compact
+  Scheme machine code as it was designed in the original PicoBit.
+
+  The scheme code requires access to all data through various means: adresses,
+  global variable numbers, vector entries.
+
+  RAM heap and ROM constant spaces are addressed with indexes in separate vectors.
+  The address space is divided in three zone:
+
+    0x0000 - 0xDFFF: RAM Heap Space
+    0xE000 - 0xFDFF: ROM Constants Space
+    0xFE00 - 0xFFFF: Coded small ints, true, false and ()
+
+  With this addressing organisation, we are then limited to a theoritical
+  maximum of 57344 cells for the RAM Heap and 7680 cells for the ROM constants.
 
  */
 
@@ -286,7 +328,7 @@ typedef cell_flags * cell_flags_ptr;
   0xFFFE           : #t
   0xFFFF           : NIL
 
-  ROM Space constants are receiving addresses starting at 0xC000.
+  ROM Space constants are receiving addresses starting at 0xE000.
 
   For the LDCS instruction, values are coded on 5 bits as follow:
 
@@ -308,7 +350,7 @@ typedef cell_flags * cell_flags_ptr;
   |            1 |        #t | 0xFFFE           |
   |            2 |       NIL | 0xFFFF           |
   |     3 .. 259 | -1 .. 255 | 0xFE00 .. 0xFF00 |
-  | 260 ..       |   ROM IDX | 0xC000 ..        |
+  | 260 ..       |   ROM IDX | 0xE000 ..        |
   +--------------+-----------+------------------+
 
 */
@@ -433,9 +475,9 @@ typedef cell_flags * cell_flags_ptr;
 #define SMALL_INT_VALUE(p)         (((int16_t)(p & SMALL_INT_MASK)) - 1)
 #define ENCODE_SMALL_INT(v)        ((cell_p) ((v) + 1) | SMALL_INT_START)
 
-#define ROM_START_ADDR             ((IDX) 0xC000)
+#define ROM_START_ADDR             ((IDX) 0xE000)
 #define ROM_MAX_ADDR               ((IDX) 0xFE00)
-#define ROM_IDX(p)                 (p & 0x3FFF)
+#define ROM_IDX(p)                 (p & 0x1FFF)
 
 #define RAM_IS_PAIR(p)             (ram_heap_flags[p].type ==         CONS_TYPE)
 #define RAM_IS_CONTINUATION(p)     (ram_heap_flags[p].type == CONTINUATION_TYPE)

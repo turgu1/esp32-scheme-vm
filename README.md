@@ -16,24 +16,24 @@ from scratch, using as much as possible from the PicoBit vm implementation.
 
 A major aspect of this decision is related to the relocation of the code space
 constants, ram, rom and vector heaps to be managed through C vector such that
-addresses calculation is done through GCC instead of being manipulated manualy
+addresses calculation is done through GCC instead of being manipulated manually
 through the code. Indexing RAM heap from index 0 requires the relocation of
 ROM space and small numbers/booleans constants in the higher portion of the
 address space.
 
-RAM and ROM data spaces are addressed with indexes in separate vectors. The
+RAM and ROM data spaces are accessed with indexes in separate vectors. The
 address space is divided in three zone:
 
-  * 0x0000 - 0xBFFF: RAM Space
-  * 0xC000 - 0xFDFF: ROM Space
+  * 0x0000 - 0xDFFF: RAM Space
+  * 0xE000 - 0xFDFF: ROM Space
   * 0xFE00 - 0xFFFF: Coded small ints, true, false and ()
 
 Each ROM and RAM data cell is composed of 5 bytes. Please look at file
 inc/vm-arch.h for details regarding the vm architecture. As the address space
 architecture is different than the original PicoBit, small changes were
-required to the compiler in support of this setup (file assembler.rkt).
+required to the picobit compiler in support of this setup (file assembler.rkt).
 
-The code produced by the compiler is also addressed through a separate vector.
+The code produced by the compiler is accessed through a separate vector.
 Code addresses start at 0x0000 and are byte addressable.
 
 esp32-scheme-vm is released under the GPLv3.
@@ -64,8 +64,8 @@ December 2017
 
 3. Third priorities
 
-  * cell seperation of flags and pointers to get pointer alignment on 16
-    and 32 bits adress boundaries
+  * cell separation of flags and pointers to get pointer alignment on 16
+    and 32 bits address boundaries
 
 ## Todo for the compiler
 
@@ -73,7 +73,7 @@ December 2017
 
   * Cells formatting on 5 bytes on constants rom-space, not 4 **OK**
   * Little-Endian **OK**
-  * ROM Heap space (for constants) start at virtual address 0xC000 **OK**
+  * ROM Heap space (for constants) start at virtual address 0xE000 **OK**
   * Code address space starts at 0x0000, not x8000 **OK**
   * Change coding of small integers, FALSE, TRUE and () **OK**
 
@@ -139,7 +139,7 @@ Fibonacci suite. You can compile it and run it with the following commands:
 an ESP32 electronic circuit **hooked to you computer through an USB serial port**.
 The author uses a ESP-WROOM-32 development board (Nodemcu) similar to the
 one offered by [amazon](https://www.amazon.com/HiLetgo-ESP-WROOM-32-Development-Microcontroller-Integrated/dp/B0718T232Z/ref=sr_1_1?ie=UTF8&qid=1515534535&sr=8-1&keywords=esp32+nodemcu). The example here will use the
-fibo.scm program compiled in the preceeding step.
+fibo.scm program compiled in the preceding step.
 
    * Configure ESP-IDF to identify the USB port on which the development board is
      connected. Use the following command:
@@ -171,10 +171,10 @@ fibo.scm program compiled in the preceeding step.
      ```
 
    * At this point, the program is now on the ESP32 platform. You can monitor
-     the resulting ouput using the following command:
+     the resulting output using the following command:
 
      ```
-     $ make -f Makefile.esp32 monitor
+       $ make -f Makefile.esp32 monitor
      ```
 
 # Original PicoBit Readme file
@@ -203,7 +203,7 @@ It consists of
 2. Build the VM:
      make
  This will build the VM with the default configuration (workstation,
- no deubgging). To configure the VM for another architecture, or with
+ no debugging). To configure the VM for another architecture, or with
  different options, run
      make help
  from the `vm' directory.

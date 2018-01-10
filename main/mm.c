@@ -443,7 +443,7 @@ bool mm_init(uint8_t * program)
 
   vector_free_cells = 0;
 
-  if (ram_heap_size >= 0xC000) {
+  if (ram_heap_size >= ROM_START_ADDR) {
     ERROR("mm_init", "Ram heap size too large");
     return false;
   }

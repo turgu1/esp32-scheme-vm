@@ -266,7 +266,7 @@
 
 ;; For the ESP32:
 ;;
-;;  1) ROM constant indexes start at #xC000 (min-rom-encoding .. )
+;;  1) ROM constant indexes start at #xE000 (min-rom-encoding .. )
 ;;  2) FALSE, TRUE and NIL are coded as #xFFFD, #xFFFE and #xFFFF respectively
 ;;  3) FIXNUMs are coded 0xFE00.. 0xFF00 (-1 .. 255)
 ;;  4) Cell types are different than the original picobit. Check vm-arch.h for details
@@ -283,7 +283,7 @@
         [(< x min-rom-encoding)
          (+ (- x 3) #xFE00)]
         [else
-         (+ (- x min-rom-encoding) #xC000)]))
+         (+ (- x min-rom-encoding) #xE000)]))
 
          ; [(exact-integer? obj)
          ;        ;-(display " exact-integer: ")

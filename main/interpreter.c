@@ -259,7 +259,7 @@ void interpreter()
           env = new_pair((r1 - 3) + 0xFE00, env);
         }
         else {
-          env = new_pair((r1 - 260) + 0xC000, env);
+          env = new_pair((r1 - 260) + ROM_START_ADDR, env);
         }
         break;
 

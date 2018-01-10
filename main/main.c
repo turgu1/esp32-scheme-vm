@@ -43,7 +43,7 @@
       #if COMPUTER
         INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
       #endif
-      fputc('\n', stderr);
+      if (verbose) fputc('\n', stderr);
     #endif
 
     fflush(stderr);

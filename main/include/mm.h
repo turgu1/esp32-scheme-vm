@@ -42,7 +42,7 @@
   /**
      RAM and ROM heaps are combined in a "virtual" heap through the indices in use.
      RAM indices start at 0 and end with the size of available contiguous allocatable
-     space from the ESP-IDF. ROM indices start at 0xC000 up to the lenght of the ROM
+     space from the ESP-IDF. ROM indices start at 0xE000 up to the lenght of the ROM
      cells array.  The maximum indice to access ROM must be lower than
      65536 - 512: 0xFE00.
    */
