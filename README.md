@@ -29,12 +29,12 @@ address space is divided in three zone:
   * 0xFE00 - 0xFFFF: Coded small ints, true, false and ()
 
 Each ROM and RAM data cell is composed of 5 bytes. Please look at file
-inc/vm-arch.h for details regarding the vm architecture. As the address space
+`inc/vm-arch.h` for details regarding the vm architecture. As the address space
 architecture is different than the original PicoBit, small changes were
-required to the picobit compiler in support of this setup (file assembler.rkt).
+required to the picobit compiler in support of this setup (file `assembler.rkt`).
 
 The code produced by the compiler is accessed through a separate vector.
-Code addresses start at 0x0000 and are byte addressable.
+Code addresses start at `0x0000` and are byte addressable.
 
 esp32-scheme-vm is released under the GPLv3.
 
@@ -45,44 +45,44 @@ December 2017
 
 1. As First priorities
 
-   * Test test Test **All Scheme tests completed, Unit tests at 50%**
-   * Implement bignums (no limit integers) **OK**
-   * ESP32 ESP-IDF integration **OK**
-   * Network primitives and suspend/resume capabilities
-   * Implement some primitives to get access to the hardware sensors and IOT interfaces
-   * Produce an easy compile-test-run makefile context for picobit application development
+   - [ ] Test test Test **All Scheme tests completed, Unit tests at 50%**
+   - [x] Implement bignums (no limit integers) **OK**
+   - [x] ESP32 ESP-IDF integration
+   - [ ] Network primitives and suspend/resume capabilities
+   - [ ] Implement some primitives to get access to the hardware sensors and IOT interfaces
+   - [ ] Produce an easy compile-test-run makefile context for picobit application development
 
 2. Second priorities
 
-   * Load mechanism through the NET for ESP32
-   * Primitives development and integration on the ESP32 for IOT I/O and networking
-   * Documentation **At 30%**
-   * Implement 32 bits Fixnums
-   * Enlarge the global space (from the maximum of 256 global values)
-   * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
-   * Version numbering
+   - [ ] Load mechanism through the NET for ESP32
+   - [ ] Primitives development and integration on the ESP32 for IOT I/O and networking
+   - [ ] Documentation **At 30%**
+   - [ ] Implement 32 bits Fixnums
+   - [ ] Enlarge the global space (from the maximum of 256 global values)
+   - [ ] Enlarge the ROM heap space (from the maximum of 256 ROM constants)
+   - [ ] Version numbering
 
 3. Third priorities
 
-   * cell separation of flags and pointers to get pointer alignment on 16
-     and 32 bits address boundaries
+   - [ ] cell separation of flags and pointers to get pointer alignment on 16
+         and 32 bits address boundaries
 
 ## Todo for the compiler
 
 1. As first priorities to get something working with the interpreter
 
-   * Cells formatting on 5 bytes on constants rom-space, not 4 **OK**
-   * Little-Endian **OK**
-   * ROM Heap space (for constants) start at virtual address 0xE000 **OK**
-   * Code address space starts at 0x0000, not x8000 **OK**
-   * Change coding of small integers, FALSE, TRUE and () **OK**
+   - [x] Cells formatting on 5 bytes on constants rom-space, not 4
+   - [x] Little-Endian
+   - [x] ROM Heap space (for constants) start at virtual address 0xE000
+   - [x] Code address space starts at 0x0000, not x8000
+   - [x] Change coding of small integers, FALSE, TRUE and ()
 
 2. Second priorities
 
-   * New 32 bits Fixnums
-   * Enlarge the global space (from the maximum of 256 global values)
-   * Enlarge the ROM heap space (from the maximum of 256 ROM constants)
-   * Add version numbering in code (Major + Minor numbers)
+   - [ ] New 32 bits Fixnums
+   - [ ] Enlarge the global space (from the maximum of 256 global values)
+   - [ ] Enlarge the ROM heap space (from the maximum of 256 ROM constants)
+   - [ ] Add version numbering in code (Major + Minor numbers)
 
 ## Installation
 
