@@ -26,7 +26,7 @@ Cells Definitions.
 
   Every cell is 40 bits long (5 bytes): Two 16 bits fields for values and one 8 bits
   field for flags and type information. To get proper memory compaction for the
-  structure defining a cell, the following option must be used for gcc:
+  structure defining a cell, the following option must be used for GCC:
 
      -fpack-struct=1
 
@@ -34,18 +34,18 @@ Cells Definitions.
 
      #pragma pack(1)
 
-  On the ESP32, adresses misalignement of 16 and 32 bits values don't seems to
-  create any issue on the performance of the code. In any case, RAM heap cells are
-  splits in two separate vectors: ram_heap_data and ram_heap_flags. Each entry in
+  On the ESP32, adress misalignment of 16 and 32 bit values doesn't seem to
+  create any issue with the performance of the code. In any case, RAM heap cells are
+  split in two separate vectors: ram_heap_data and ram_heap_flags. Each entry in
   the ram_heap_data vector is 4 bytes long. Each entry in the ram_heap_flasg is 1
-  byte. As the ESP32 ram memory is not continuous, this arrangement will help in
+  byte. As the ESP32 RAM memory is not continuous, this arrangement will help in
   having the largest amount of cells for the heap.
 
   The address space of the virtual heap cannot go beyond (64k * 5). To address
   64K cells, we need 16 bits (2ˆ16 = 64k).
 
-  - The 2 first bit are not used by the interpreter but are defined as
-    user_1 and user_2 flags. New primitives are allowed to use them. They area
+  - The 2 first bits are not used by the interpreter but are defined as
+    user_1 and user_2 flags. New primitives are allowed to use them. They are
     protected by the garbage collector.
   - The 4 following bits are the type of a cell
   - The 2 following bits are the GC bits
@@ -143,9 +143,9 @@ Cells Definitions.
 
       The following could be implemented later:
 
-      The Symbol table is in the rom area. The char list is an index (byte index
+      The Symbol table is in the ROM area. The char list is an index (byte index
       in the constant string pool) to a null terminated string containing the
-      human representation of the symbol. Next point to the next synbol cell in
+      human representation of the symbol. Next point to the next symbol cell in
       the symbol table. The chars list pointer in unique for each symbol.
 
       +----+------+----+---------------+----------------+
@@ -155,32 +155,32 @@ Cells Definitions.
 
  Memory organisation
 
-  The ESP32 possesses 520 Kbytes of RAM. This memory space offers interesting
+  The ESP32 possesses 520 KBytes of RAM. This memory space offers interesting
   opportunities for running substantial Scheme programs, compared to other 8
-  bits cpus. However, as this space is not contiguous, it requires some
+  bits CPUs. However, as this space is not contiguous, it requires some
   flexibility to organise the memory requirements for a scheme interpreter.
 
-  Splitting ram heap cells in two parts (data and flags), at this point in
-  time, we are able to run using 42 K ram heap cells (~210 Kbytes) and 60 Kbytes
+  Splitting RAM heap cells in two parts (data and flags), at this point in
+  time, we are able to run using 42 K RAM heap cells (~210 KBytes) and 60 KBytes
   for the u8vector space.
 
-  A Scheme program is composed of code, constants, global variables, a heap for
+  A Scheme program is composed of code, constants, global variables, a heap of
   dynamically created data and contiguous space for byte vectors.
 
   Ram memory is organized to receive the following chunks:
 
-    data heap as two C vectors: flags and data
-    byte vectors content as one C vector
-    global variables, put at the beginning of the data heap
+    * data heap as two C vectors: flags and data
+    * byte vectors content as one C vector
+    * global variables, located at the beginning of the data heap
 
   The picobit binary program, once it as been compiled, is merged with the
-  interpreter machine code before it is burn on the ESP32. It is then possible
+  interpreter machine code before it is burned on the ESP32. It is then possible
   to have up to 64 KBytes of scheme code and constants, the chip allowing far more
   coding space. The 64 KBytes of scheme code is a compromise to keep the compact
   Scheme machine code as it was designed in the original PicoBit.
 
-  The scheme code requires access to all data through various means: adresses,
-  global variable numbers, vector entries.
+  The scheme code requires access to all data through various means: virtual adresses,
+  global variable numbers, vector entries through indexes.
 
   RAM heap and ROM constant spaces are addressed with indexes in separate vectors.
   The address space is divided in three zone:
@@ -313,15 +313,14 @@ typedef cell_flags * cell_flags_ptr;
 
   Global variables are located at the beginning of the RAM Heap. As this
   heap is allocated on cell boundaries, we are putting 2 globals per cell.
-  Global access instructions limit to 256 globals.
-
+  Global access instructions limit to 256 variables.
  */
 
 /** Standard Constants.
 
   To mitigate the amount of generated cells, standard constants are defined
   in the address space. Addresses 0xFE00 to 0xFFFF are reserved for
-  predefined constants as follow:
+  predefined constants as follows:
 
   0xFE00 .. 0xFF00 : -1 to 255
   0xFFFD           : #f
@@ -330,7 +329,7 @@ typedef cell_flags * cell_flags_ptr;
 
   ROM Space constants are receiving addresses starting at 0xE000.
 
-  For the LDCS instruction, values are coded on 5 bits as follow:
+  For the LDCS instruction, values are coded on 5 bits as follows:
 
   +---------+----------+------------------+
   |   ccccc |  result  | addr mapping     |
@@ -341,7 +340,7 @@ typedef cell_flags * cell_flags_ptr;
   | 3 .. 31 | -1 .. 27 | 0xFE00 .. 0xFE1C |
   +---------+----------+------------------+
 
-  For the LDC instruction , values are coded on 12 bits as follow:
+  For the LDC instruction, values are coded on 12 bits as follows:
 
   +--------------+-----------+------------------+
   | cccccccccccc |   result  | addr mapping     |
@@ -364,7 +363,10 @@ typedef cell_flags * cell_flags_ptr;
 
 /** Instructions.
 
-  The instructions are the same as the PICOBIT vm.
+  The instructions are the same as the PicoBit original virtual machine.
+  Customary assembly language names have been defined to help distinguish
+  virtual machine instructions from scheme functions from traces generated by
+  the interpreter.
 
   LDCS    Load immediate small constant to TOS
           000ccccc
@@ -621,7 +623,7 @@ typedef cell_flags * cell_flags_ptr;
  cont         index on continuations
  entry        index in code of a procedure entry point
  reg1 .. reg4 registers for function parameters and evaluation
- pc           program counter (pointer into rom code space)
+ pc           program counter (pointer into ROM code space)
 
  Golden rules for those who want to create their own primitives or want to
  modify the virtual machine:
@@ -633,16 +635,17 @@ typedef cell_flags * cell_flags_ptr;
     free list and their content will be lost.
 
   2. Never used registers (env cont reg1 .. reg4) and global variables as
-     scratch space for anything else than scheme cells or encoded values. The
-     garbage collector could become mixed up if those registers contain values
-     that are not related to the address space and encoded values managed by
-     the virtual machine.
+     scratch space for anything else than scheme cells adresses or encoded
+     values. The garbage collector could become mixed up if those registers
+     contain values that are not related to the address space and encoded values
+     managed by the virtual machine.
 
-  3. Never directly access vm union and struct defined in file vm-arch.h. Use
-     the macro defined in that same file to access those structure. This will
-     ensure coherence on changes made to the vm internals.
+  3. Never directly access virtual machine union and structure defined in file
+     vm-arch.h. Use the macro defined in that same file to access those
+     structures. This will ensure coherence on changes made to the virtual
+     machine internals.
 
-  In the preceeding paragraphs, global values are the ones generated by the
+  In the preceding paragraphs, global values are the ones generated by the
   compiler and located in the RAM heap starting at index 0 (two global
   variables per cell).
 

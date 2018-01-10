@@ -1,40 +1,40 @@
 # esp32-scheme-vm
 
-A Scheme interpreter to be used both on a linux based host and on an ESP32 IOT processor.
+A Scheme interpreter to be used both on a Linux based host and in an ESP32 IOT processor.
 
-Early piece of code. This is work in progress and is still under heavy development.
+Early piece of code. This is a work in progress and is still under heavy development.
 At this point in time, programs are able to be run on both Linux, OSX and ESP32
-platforms. Please look at the Todo list below for more information about the state
+platforms. Please look at the to-do list below for more information about the state
 of development.
 
 This is a port of the PicoBit Scheme system you can find at the following
 [location](https://github.com/stamourv/picobit).
 
 The ESP32 processor provides an environment that requires a lot of changes to
-the way the scheme vm operate. As such, I decided to develop a new interpreter
+the way the scheme virtual machine (vm) operate. As such, I decided to develop a new interpreter
 from scratch, using as much as possible from the PicoBit vm implementation.
 
 A major aspect of this decision is related to the relocation of the code space
-constants, ram, rom and vector heaps to be managed through C vector such that
+constants, RAM, ROM and vector heaps to be managed through C vector such that
 addresses calculation is done through GCC instead of being manipulated manually
 through the code. Indexing RAM heap from index 0 requires the relocation of
 ROM space and small numbers/booleans constants in the higher portion of the
 address space.
 
 RAM and ROM data spaces are accessed with indexes in separate vectors. The
-address space is divided in three zone:
+address space is divided into three zones:
 
   * 0x0000 - 0xDFFF: RAM Space
   * 0xE000 - 0xFDFF: ROM Space
   * 0xFE00 - 0xFFFF: Coded small ints, true, false and ()
 
-Each ROM and RAM data cell is composed of 5 bytes. Please look at file
+Each ROM and RAM data cell are composed of 5 bytes. Please look at file
 `inc/vm-arch.h` for details regarding the vm architecture. As the address space
 architecture is different than the original PicoBit, small changes were
-required to the picobit compiler in support of this setup (file `assembler.rkt`).
+required for the picobit compiler in support of this setup (file `assembler.rkt`).
 
 The code produced by the compiler is accessed through a separate vector.
-Code addresses start at `0x0000` and are byte addressable.
+The code addresses start at 0x0000 and are byte addressable.
 
 esp32-scheme-vm is released under the GPLv3.
 
@@ -46,32 +46,29 @@ December 2017
 1. As First priorities
 
    - [ ] Test test Test **All Scheme tests completed, Unit tests at 50%**
-   - [x] Implement bignums (no limit integers) **OK**
+   - [x] Implement bignums (no limit integers)
    - [x] ESP32 ESP-IDF integration
    - [ ] Network primitives and suspend/resume capabilities
    - [ ] Implement some primitives to get access to the hardware sensors and IOT interfaces
-   - [ ] Produce an easy compile-test-run makefile context for picobit application development
+   - [ ] Produce an easy compile-test-run Makefile context for picobit application development
+   - [x] cell separation of flags and pointers to get pointer alignment on 16
+         and 32 bits address boundaries and more flexibility on RAM usage
 
 2. Second priorities
 
    - [ ] Load mechanism through the NET for ESP32
-   - [ ] Primitives development and integration on the ESP32 for IOT I/O and networking
+   - [ ] Primitives development and integration in the ESP32 for IOT I/O and networking
    - [ ] Documentation **At 30%**
    - [ ] Implement 32 bits Fixnums
    - [ ] Enlarge the global space (from the maximum of 256 global values)
    - [ ] Enlarge the ROM heap space (from the maximum of 256 ROM constants)
    - [ ] Version numbering
 
-3. Third priorities
-
-   - [ ] cell separation of flags and pointers to get pointer alignment on 16
-         and 32 bits address boundaries
-
 ## Todo for the compiler
 
 1. As first priorities to get something working with the interpreter
 
-   - [x] Cells formatting on 5 bytes on constants rom-space, not 4
+   - [x] Cells formatting on 5 bytes on constants ROM space, not 4
    - [x] Little-Endian
    - [x] ROM Heap space (for constants) start at virtual address 0xE000
    - [x] Code address space starts at 0x0000, not x8000
@@ -87,7 +84,7 @@ December 2017
 ## Installation
 
 Here are the steps to get a development environment that will allow
-for both host (linux or OSX) and ESP32 scheme programming with this PicoBit
+for both hosts (Linux or OSX) and ESP32 scheme programming with this PicoBit
 implementation (A Microsoft Windows context of development will eventually be
 documented):
 
@@ -105,8 +102,8 @@ documented):
 
 2. Download the esp32-scheme-vm from github
 
-   * From a terminal screen, goto a folder into which this repository will
-     be retrieved in.
+   * From a terminal screen, go to a folder into which this repository will
+     be retrieved.
 
    * execute the following command:
 
@@ -127,7 +124,7 @@ documented):
     ```
 
 4. Prepare your scheme program. A demonstration program named "fibo.scm" is
-supplied that compute the Fibonacci value for the 200 first numbers of the
+supplied that compute the Fibonacci value of the 200 first numbers of the
 Fibonacci suite. You can compile it and run it with the following commands:
 
     ```
@@ -136,10 +133,10 @@ Fibonacci suite. You can compile it and run it with the following commands:
     ```
 
 5. Compile and run the program on a ESP32 platform. For this, you will need
-an ESP32 electronic circuit **hooked to you computer through an USB serial port**.
+an ESP32 electronic circuit **hooked to your computer through a USB serial port**.
 The author uses a ESP-WROOM-32 development board (Nodemcu) similar to the
 one offered by [amazon](https://www.amazon.com/HiLetgo-ESP-WROOM-32-Development-Microcontroller-Integrated/dp/B0718T232Z/ref=sr_1_1?ie=UTF8&qid=1515534535&sr=8-1&keywords=esp32+nodemcu). The example here will use the
-fibo.scm program compiled in the preceding step.
+`fibo.scm` program compiled in the preceding step.
 
    * Configure ESP-IDF to identify the USB port on which the development board is
      connected. Use the following command:
@@ -148,22 +145,22 @@ fibo.scm program compiled in the preceding step.
        $ make -f Makefile.esp32 menuconfig
      ```
 
-   * The application fibo.scm is already compiled. We need to create a binary
+   * The application `fibo.scm` is already compiled. We need to create a binary
      version of it through the following command:
 
      ```
        $ ./h2b fibo.hex fibo.bin
      ```
 
-   * The resulting fibo.bin file must be made available to picobit-vm as it
-     will be integrated with the virtual machine code and pushed on the ESP32:
+   * The resulting `fibo.bin` file must be made available to picobit-vm as it
+     will be integrated with the virtual machine code and pushed in the ESP32:
 
      ```
        $ cp fibo.bin main/program.bin
      ```
 
-   * Now, we compile and burn the code on the ESP32. The first time picobit-vm
-     will be built for the ESP32, it will take sometime as the entire ESP-IDF
+   * Now, we compile and burn the code in the ESP32. The first time picobit-vm
+     will be built for the ESP32, it will take some time as the entire ESP-IDF
      environment will also be compiled:
 
      ```
