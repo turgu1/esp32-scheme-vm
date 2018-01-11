@@ -95,6 +95,7 @@ void mm_mark(cell_p p)
 #else
 
 // My own design. No fragmentation. (GT)
+// Seems to work very well. Any idea to get it better??
 void mm_mark(cell_p p)
 {
   cell_p current = p;
@@ -128,6 +129,8 @@ void mm_mark(cell_p p)
 
     if (prev >= ram_heap_end) break;
 
+    // If we found a node with a right branch, mark it for return and
+    // go down that branch to process its own left path.
     if (HAS_RIGHT_LINK(prev)) {
       next = RAM_GET_CAR(prev);
       RAM_SET_CAR(prev, current);
@@ -136,7 +139,7 @@ void mm_mark(cell_p p)
       RAM_SET_CDR(prev, next);
     }
     else {
-      // We go up util a node with a right link or top of the tree is detected
+      // We go up until a node with a right link or top of the tree is detected
       while ((prev < ram_heap_end) && HAS_NO_RIGHT_LINK(prev)) {
         next = RAM_GET_CAR(prev);
         RAM_SET_CAR(prev, current);
@@ -175,6 +178,7 @@ PRIVATE void mm_sweep()
   free_cells = NIL;
 
   #if DEBUGGING
+    // Used to check for fragmentation the heap
     free_allocated_count = 0;
   #endif
 
