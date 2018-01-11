@@ -1,6 +1,7 @@
 # esp32-scheme-vm
 
-A Scheme interpreter to be used both on a Linux based host and in an ESP32 IOT processor.
+A Scheme interpreter to be used both on a Linux based workstation and in an
+ESP32 IOT processor.
 
 Early piece of code. This is a work in progress and is still under heavy development.
 At this point in time, programs are able to be run on both Linux, OSX and ESP32
@@ -84,7 +85,7 @@ December 2017
 ## Installation
 
 Here are the steps to get a development environment that will allow
-for both hosts (Linux or OSX) and ESP32 scheme programming with this PicoBit
+for both workstations (Linux or OSX) and ESP32 scheme programming with this PicoBit
 implementation (A Microsoft Windows context of development will eventually be
 documented):
 
@@ -93,7 +94,8 @@ documented):
    * ESP-IDF - As per the ESP-IDF Installation guidelines at that
     [location](http://esp-idf.readthedocs.io/en/latest/get-started/linux-setup.html)
      for Linux, or that
-     [location](http://esp-idf.readthedocs.io/en/latest/get-started/macos-setup.html) for OSX.
+     [location](http://esp-idf.readthedocs.io/en/latest/get-started/macos-setup.html)
+     for OSX.
 
    * GCC and other tools - As per your OS environment. The following products
      are required: **GCC, gawk, git, doxygen**
@@ -111,7 +113,8 @@ documented):
       $ git clone https://github.com/turgu1/esp32-scheme-vm.git
     ```
 
-3. Compile the host version of the compiler, picobit-vm and hex2bin programs.
+3. Compile the workstation version of the compiler, picobit-vm and hex2bin
+   programs.
 
    * Do the following commands in a terminal screen:
 
@@ -125,7 +128,8 @@ documented):
 
 4. Prepare your scheme program. A demonstration program named "fibo.scm" is
 supplied that compute the Fibonacci value of the 200 first numbers of the
-Fibonacci suite. You can compile it and run it with the following commands:
+Fibonacci suite. You can compile it and run it on your workstation with the
+following commands:
 
     ```
       $ ./picobit fibo.scm

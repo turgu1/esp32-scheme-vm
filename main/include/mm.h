@@ -7,7 +7,7 @@
 # define PUBLIC extern
 #endif
 
-#ifdef COMPUTER
+#ifdef WORKSTATION
   #define RAM_HEAP_ALLOCATED    40000 // (8192 - 1280)
   #define VECTOR_HEAP_ALLOCATED 30000 // 8192
 #endif

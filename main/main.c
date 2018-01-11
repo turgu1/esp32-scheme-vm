@@ -18,7 +18,7 @@
 #include "interpreter.h"
 #include "testing.h"
 
-#if COMPUTER
+#if WORKSTATION
   bool initialisations(char * program_filename)
   {
     if ((program = calloc(65536, 1)) == NULL) {
@@ -40,7 +40,7 @@
   {
     #if STATISTICS
       INFO_MSG("terminate: GC Processing Count: %d.", gc_call_counter);
-      #if COMPUTER
+      #if WORKSTATION
         INFO_MSG("terminate: Max GC Duration: %10.7f Sec.", max_gc_duration);
       #endif
       if (verbose) fputc('\n', stderr);
@@ -134,7 +134,7 @@
 
     return 0;
   }
-#endif // COMPUTER
+#endif // WORKSTATION
 
 #if ESP32
 

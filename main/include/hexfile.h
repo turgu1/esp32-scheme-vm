@@ -1,7 +1,7 @@
 #ifndef HEXFILE_H
 #define HEXFILE_H
 
-#if COMPUTER
+#if WORKSTATION
 
   #ifdef HEXFILE
     #define PUBLIC
@@ -13,6 +13,6 @@
 
   #undef PUBLIC
 
-#endif // COMPUTER
+#endif // WORKSTATION
 
 #endif

@@ -2,7 +2,7 @@
 #include "esp32-scheme-vm.h"
 #include "testing.h"
 
-#if COMPUTER
+#if WORKSTATION
   #include <termios.h>
   #include <unistd.h>
   #include <fcntl.h>
@@ -13,7 +13,7 @@
 
 void kb_init()
 {
-  #if COMPUTER
+  #if WORKSTATION
     tcgetattr(STDIN_FILENO, &oldattr);
     newattr = oldattr;
     newattr.c_lflag &= ~(ICANON | ECHO);
@@ -25,7 +25,7 @@ void kb_init()
 
 void kb_restore()
 {
-  #if COMPUTER
+  #if WORKSTATION
     tcsetattr(STDIN_FILENO, TCSANOW, &oldattr);
     fcntl(STDIN_FILENO, F_SETFL, oldf);
   #endif

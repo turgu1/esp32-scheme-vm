@@ -7,14 +7,14 @@
 extern void terminate();
 
 #if __linux__ || __APPLE__
-  #define COMPUTER 1
+  #define WORKSTATION 1
 #elif ESP_PLATFORM
   #define ESP32 1
 #else
   #error "Not a supported platform"
 #endif
 
-#ifdef COMPUTER
+#ifdef WORKSTATION
   #include <stdint.h>
   #include <stdlib.h>
   #include <stdio.h>

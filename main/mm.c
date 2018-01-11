@@ -412,7 +412,7 @@ bool mm_init(uint8_t * program)
     gc_call_counter = 0;
   #endif
 
-  #ifdef COMPUTER
+  #ifdef WORKSTATION
 
     #if STATISTICS
       max_gc_duration = 0;
